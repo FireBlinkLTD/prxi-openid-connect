@@ -83,6 +83,13 @@ interface ServerConfig {
 
   jwt: {
     claimPaths: Record<string, string[]>,
+  },
+
+  redirect: {
+    pageRequest: {
+      e404: string | null;
+      e403: string | null;
+    }
   }
 }
 
@@ -129,6 +136,13 @@ export const getConfig = () => {
 
       jwt: {
         claimPaths: process.env.JWT_CLAIM_PATHS ? JSON.parse(process.env.JWT_CLAIM_PATHS) : {},
+      },
+
+      redirect: {
+        pageRequest: {
+          e404: process.env.REDIRECT_PAGE_REQUEST_ON_404,
+          e403: process.env.REDIRECT_PAGE_REQUEST_ON_403,
+        }
       }
     }
   }

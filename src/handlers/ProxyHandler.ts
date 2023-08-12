@@ -176,7 +176,11 @@ export class ProxyHandler implements RequestHandlerConfig {
   private async handleAuthorizationFlow(req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>): Promise<boolean> {
     const allowedAccess = await this.isAllowedAccess(context);
     if (!allowedAccess) {
-      sendErrorResponse(req, 403, 'Forbidden', res);
+      if (context.page && getConfig().redirect.pageRequest.e403) {
+        sendRedirect(res, getConfig().redirect.pageRequest.e403);
+      } else {
+        sendErrorResponse(req, 403, 'Forbidden', res);
+      }
 
       return true;
     }
