@@ -21,6 +21,8 @@ const handler = async () => {
   const logger = getLogger('Server');
   const config = getConfig();
 
+  logger.child({config}).info('Configuration');
+
   try {
     // Prepare proxy configuration
     prxi = new Prxi({

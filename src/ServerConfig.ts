@@ -38,7 +38,7 @@ const prepareMappings = (value: string, requireClaims: boolean): Mapping[] => {
         claims: requireClaims ? r.claims : undefined,
       });
 
-      if (requireClaims && !r.restrictTo) {
+      if (requireClaims && !r.claims) {
         throw new Error(`restrictTo configuration is missing for value: ${value}`);
       }
     }

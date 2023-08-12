@@ -1,11 +1,20 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { invalidateAuthCookies, sendJsonResponse, sendRedirect, setAuthCookies, setCookies } from "../utils/ResponseUtils";
+import { invalidateAuthCookies, sendErrorResponse, sendJsonResponse, sendRedirect, setAuthCookies, setCookies } from "../utils/ResponseUtils";
 import { parse } from 'cookie';
 import { Mapping, getConfig } from "../ServerConfig";
 import { JWTVerificationResult, OpenIDUtils } from "../utils/OpenIDUtils";
 import { decode, Jwt } from 'jsonwebtoken';
+import getLogger from "../Logger";
+import { Logger } from "pino";
+
 export class ProxyHandler implements RequestHandlerConfig {
+  private logger: Logger;
+
+  constructor() {
+    this.logger = getLogger('ProxyHandler')
+  }
+
   /**
    * @inheritdoc
    */
@@ -85,26 +94,35 @@ export class ProxyHandler implements RequestHandlerConfig {
   private async handleAuthenticationFlow(req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>): Promise<boolean> {
     const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
 
-    let accessToken = cookies[getConfig().cookies.names.accessToken];
-    let idToken = cookies[getConfig().cookies.names.idToken];
-    let refreshToken = cookies[getConfig().cookies.names.idToken];
+    let accessToken = context.accessToken = cookies[getConfig().cookies.names.accessToken];
+    let idToken = context.idToken = cookies[getConfig().cookies.names.idToken];
+    let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.idToken];
 
     let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await this.parseTokenAndVerify(accessToken);
+    let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await this.parseTokenAndVerify(context.idTokenJWT);
+    context.idTokenJWT = idTokenJWT;
 
     // if access token is missing or expired attempt to refresh tokens
-    if(accessTokenVerificationResult === JWTVerificationResult.MISSING || accessTokenVerificationResult === JWTVerificationResult.EXPIRED) {
+    if(
+      accessTokenVerificationResult === JWTVerificationResult.MISSING ||
+      accessTokenVerificationResult === JWTVerificationResult.EXPIRED ||
+      idTokenVerificationResult === JWTVerificationResult.EXPIRED
+    ) {
       let { verificationResult: refreshTokenVerificationResult } = await this.parseTokenAndVerify(accessToken);
       if (refreshTokenVerificationResult === JWTVerificationResult.SUCCESS) {
         const tokens = await OpenIDUtils.refreshTokens(refreshToken);
         setAuthCookies(res, tokens);
 
-        accessToken = tokens.access_token;
-        idToken = tokens.id_token;
-        refreshToken = tokens.refresh_token;
+        accessToken = context.accessToken = tokens.access_token;
+        idToken = context.idToken = tokens.id_token;
+        refreshToken = context.refreshToken = tokens.refresh_token;
 
         const accessVerification = await this.parseTokenAndVerify(accessToken);
+        const idVerification = await this.parseTokenAndVerify(idToken);
         accessTokenJWT = accessVerification.jwt;
         accessTokenVerificationResult = accessVerification.verificationResult;
+
+        context.idTokenJWT = idVerification.jwt;
       }
     }
 
@@ -140,6 +158,9 @@ export class ProxyHandler implements RequestHandlerConfig {
       return true;
     }
 
+    context.accessToken = accessToken;
+    context.accessTokenJWT = accessTokenJWT
+
     return false;
   }
 
@@ -153,13 +174,92 @@ export class ProxyHandler implements RequestHandlerConfig {
    * @returns
    */
   private async handleAuthorizationFlow(req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>): Promise<boolean> {
-    const { claimPaths } = getConfig().jwt;
-    const { mapping, api } = context;
-    const { claims } = mapping;
+    const allowedAccess = await this.isAllowedAccess(context);
+    if (!allowedAccess) {
+      sendErrorResponse(req, 403, 'Forbidden', res);
 
-    const jwtClaims = [];
+      return true;
+    }
 
     return false;
+  }
+
+  /**
+   * Check if access is allowed
+   * @param context
+   * @returns
+   */
+  private async isAllowedAccess(context: Record<string, any>): Promise<boolean> {
+    const { claimPaths } = getConfig().jwt;
+    const mapping: Mapping = context.mapping;
+    const { claims } = mapping;
+
+    if (!claims) {
+      this.logger.child({mapping}).warn('Unable to find claims in the mapping');
+      return false;
+    }
+
+    const jwtClaims = this.extractJWTClaims([
+      context.accessTokenJWT,
+      context.idTokenJWT,
+    ], claimPaths);
+
+    for (const key of Object.keys(claims)) {
+      const expectedKeyClaims = claims[key];
+      const jwtKeyClaims = jwtClaims[key];
+
+      if (jwtKeyClaims?.length) {
+        const intersection = expectedKeyClaims.filter(claim => jwtKeyClaims.includes(claim));
+        if (intersection.length) {
+          this.logger.child({intersection}).info('Found intersection of claims, access allowed');
+          return true;
+        }
+      }
+    }
+
+    this.logger.child({
+      expectedClaims: claims,
+      actualClaims: jwtClaims,
+    }).info('No intersection of claims found, access forbidden');
+    return false;
+  }
+
+  /**
+   * Extract JWT Claims for paths from all tokens
+   * @param tokens
+   * @param claimPaths
+   * @returns
+   */
+  private extractJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, string[]> {
+    const result: Record<string, string[]> = {};
+
+    for (const name of Object.keys(claimPaths)) {
+      const claims: string[] = [];
+      const claimPath = claimPaths[name];
+
+      for (const jwt of tokens) {
+        if (jwt) {
+          let target: any = jwt.payload;
+          let fail = false;
+          for (let path of claimPath) {
+            if (target[path]) {
+              target = target[path];
+            } else {
+              fail = true;
+              break;
+            }
+          }
+
+          if (!fail) {
+            claims.push(...target);
+          }
+        }
+      }
+
+      result[name] = claims;
+    }
+
+    return result;
   }
 
   /**
