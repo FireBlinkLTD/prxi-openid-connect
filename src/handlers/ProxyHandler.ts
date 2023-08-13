@@ -128,12 +128,20 @@ export class ProxyHandler implements RequestHandlerConfig {
     }
 
     if (accessTokenVerificationResult === JWTVerificationResult.MISSING) {
-      setCookies(res, {
-        [getConfig().cookies.names.originalPath]: {
-          value: path,
-          expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+      if (context.page) {
+        let query = '';
+        let queryIdx = req.url.indexOf('?');
+        if (queryIdx >= 0) {
+          query = req.url.substring(queryIdx);
         }
-      });
+
+        setCookies(res, {
+          [getConfig().cookies.names.originalPath]: {
+            value: path + query,
+            expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
+          }
+        });
+      }
 
       await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
 

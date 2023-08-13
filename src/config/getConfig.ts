@@ -20,7 +20,7 @@ export const getConfig = () => {
       hostURL: process.env.HOST_URL,
       openid: {
         discoverURL: process.env.OPENID_CONNECT_DISCOVER_URL,
-        callbackPath: process.env.OPENID_CALLBACK_PATH,
+        callbackPath: process.env.OPENID_CALLBACK_PATH || '/_prxi_/callback',
         clientId: process.env.OPENID_CLIENT_ID,
         clientSecret: process.env.OPENID_CLIENT_SECRET,
         scope: process.env.OPENID_SCOPE || 'openid email profile'
@@ -30,8 +30,8 @@ export const getConfig = () => {
         secure: Boolean(process.env.COOKIES_SECURE || 'true'),
         names: {
           accessToken: process.env.COOKIES_ACCESS_TOKEN || 'prxi-at',
-          idToken: process.env.COOKIES_ACCESS_TOKEN || 'prxi-it',
-          refreshToken: process.env.COOKIES_ACCESS_TOKEN || 'prxi-rt',
+          idToken: process.env.COOKIES_ID_TOKEN || 'prxi-it',
+          refreshToken: process.env.COOKIES_REFRESH_TOKEN || 'prxi-rt',
           originalPath: process.env.COOKIES_ORIGINAL_PATH || 'prxi-op',
         }
       },
