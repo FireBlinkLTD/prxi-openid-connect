@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { Prxi } from 'prxi';
 import { onShutdown } from "node-graceful-shutdown";
 
-import { getConfig } from "./ServerConfig";
+import { getConfig } from "./config/getConfig";
 
 import getLogger from "./Logger";
 import { CallbackHandler } from './handlers/CallbackHandler';
@@ -63,6 +63,20 @@ const handler = async () => {
   }
 }
 
+/**
+ * Try to stop proxy when error ocurred
+ */
+const stopOnError = () => {
+  const promise = prxi?.stop();
+  if (promise) {
+    promise.finally(() => {
+      process.exit(1);
+    });
+  } else {
+    process.exit(1);
+  }
+}
+
 process.on('uncaughtException', (err) => {
   try {
     const logger = getLogger('Server');
@@ -71,14 +85,7 @@ process.on('uncaughtException', (err) => {
     console.error('Unhandled exception', err);
   }
 
-  let promise = prxi?.stop();
-  if (promise) {
-    promise.finally(() => {
-      process.exit(1);
-    });
-  } else {
-    process.exit(1);
-  }
+  stopOnError();
 });
 
 process.on('unhandledRejection', (reason) => {
@@ -89,14 +96,7 @@ process.on('unhandledRejection', (reason) => {
     console.error(`Unhandled rejection: ${reason}`);
   }
 
-  let promise = prxi?.stop();
-  if (promise) {
-    promise.finally(() => {
-      process.exit(1);
-    });
-  } else {
-    process.exit(1);
-  }
+  stopOnError();
 });
 
 handler();

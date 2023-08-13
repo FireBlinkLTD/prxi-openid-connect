@@ -1,11 +1,11 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
+import { ProxyRequest, RequestHandlerConfig } from "prxi";
 import { sendErrorResponse, sendRedirect } from "../utils/ResponseUtils";
 import getLogger from "../Logger";
-import { getConfig } from "../ServerConfig";
+import { getConfig } from "../config/getConfig";
 
 export const E404Handler: RequestHandlerConfig = {
-  isMatching: (method: HttpMethod, path: string) => {
+  isMatching: () => {
     return true;
   },
 

@@ -1,6 +1,6 @@
 # @prxi/openid-connect
 
-OpenID Connect reverse proxy based on a zero-dependency proxy library [prxi](https://www.npmjs.com/package/prxi).
+OpenID Connect reverse proxy server that based on a zero-dependency proxy library [prxi](https://www.npmjs.com/package/prxi).
 
 ## Configuration
 

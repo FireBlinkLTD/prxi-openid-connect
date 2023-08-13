@@ -1,5 +1,5 @@
 import { IncomingMessage, ServerResponse } from "http"
-import { getConfig } from "../ServerConfig";
+import { getConfig } from "../config/getConfig";
 import { serialize } from "cookie";
 import { TokenSet } from "openid-client";
 

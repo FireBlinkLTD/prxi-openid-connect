@@ -1,6 +1,6 @@
 import { Issuer, Client, TokenSet } from 'openid-client';
 import getLogger from '../Logger';
-import { getConfig } from '../ServerConfig';
+import { getConfig } from '../config/getConfig';
 import { IncomingMessage } from 'http';
 import jwkToBuffer = require('jwk-to-pem');
 import { Jwt, verify } from 'jsonwebtoken';

@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { getConfig } from "../ServerConfig";
+import { getConfig } from "../config/getConfig";
 import { sendJsonResponse } from "../utils/ResponseUtils";
 
 export const HealthHandler: RequestHandlerConfig = {
