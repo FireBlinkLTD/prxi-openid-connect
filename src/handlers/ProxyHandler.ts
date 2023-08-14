@@ -27,6 +27,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
+      this.logger.child({mapping: context.mapping}).info('Handling public mapping');
       context.public = true;
 
       return true;
@@ -39,6 +40,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
+      this.logger.child({mapping: context.mapping}).info('Handling api mapping');
       context.api = true;
 
       return true;
@@ -51,6 +53,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
+      this.logger.child({mapping: context.mapping}).info('Handling page mapping');
       context.page = true;
 
       return true;
@@ -141,22 +144,20 @@ export class ProxyHandler implements RequestHandlerConfig {
             expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
           }
         });
+
+        await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
+
+        return true;
       }
 
-      await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
+      await sendErrorResponse(req, 401, 'Unauthorized', res);
 
       return true;
     }
 
     if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
       if (context.api) {
-        // 401
-        sendJsonResponse(401, {
-          error: {
-            status: 401,
-            message: 'Unauthorized'
-          }
-        }, res);
+        sendErrorResponse(req, 401, 'Unauthorized', res);
 
         return true;
       }

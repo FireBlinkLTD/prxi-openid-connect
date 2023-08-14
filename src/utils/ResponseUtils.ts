@@ -2,6 +2,7 @@ import { IncomingMessage, ServerResponse } from "http"
 import { getConfig } from "../config/getConfig";
 import { serialize } from "cookie";
 import { TokenSet } from "openid-client";
+import getLogger from "../Logger";
 
 let domain: string;
 
@@ -22,6 +23,7 @@ const getDomain = (): string => {
  * @param resp
  */
 export const invalidateAuthCookies = (resp: ServerResponse): void => {
+  getLogger('ResponseUtils').info('Invalidate auth cookies');
   const accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
       value: 'n/a',
@@ -40,6 +42,8 @@ export const invalidateAuthCookies = (resp: ServerResponse): void => {
       expires: new Date(0),
     },
   };
+
+  setCookies(resp, accessCookies);
 }
 
 /**
@@ -48,6 +52,7 @@ export const invalidateAuthCookies = (resp: ServerResponse): void => {
  * @param tokens
  */
 export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet): void => {
+  getLogger('ResponseUtils').info('Setting auth cookies');
   const accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
       value: 'n/a',
@@ -104,6 +109,7 @@ export const setCookies = (resp: ServerResponse, cookies: Record<string, {value:
  * @param url
  */
 export const sendRedirect = async (resp: ServerResponse, url: string): Promise<void> => {
+  getLogger('ResponseUtils').info('Sending redirect');
   resp.statusCode = 307;
   resp.setHeader('Location', url);
   resp.end();
@@ -117,12 +123,13 @@ export const sendRedirect = async (resp: ServerResponse, url: string): Promise<v
  * @param resp
  */
 export const sendErrorResponse = async (req: IncomingMessage, statusCode: number, message: string, resp: ServerResponse): Promise<void>  => {
+  getLogger('ResponseUtils').child({message, statusCode}).info('Setting error response');
   if (req.headers.accept === 'application/json') {
     return await sendJsonResponse(statusCode, {
       error: true,
       details: {
-        errorMessage: message,
-        statusCode: statusCode,
+        message: message,
+        code: statusCode,
       },
     }, resp);
   }
@@ -137,6 +144,7 @@ export const sendErrorResponse = async (req: IncomingMessage, statusCode: number
  * @param resp
  */
 export const sendJsonResponse = async (statusCode: number, json: any, resp: ServerResponse): Promise<void> => {
+  getLogger('ResponseUtils').info('Setting JSON response');
   await sendResponse(statusCode, 'application/json', JSON.stringify(json), resp);
 }
 
@@ -148,6 +156,7 @@ export const sendJsonResponse = async (statusCode: number, json: any, resp: Serv
  * @param resp
  */
 export const sendResponse = async (statusCode: number, contentType: string, content: any, resp: ServerResponse): Promise<void> => {
+  getLogger('ResponseUtils').info('Setting response');
   resp.statusCode = statusCode;
   resp.setHeader('content-type', contentType);
 

@@ -8,10 +8,11 @@ let config: Config;
  * @returns
  */
 export const getConfig = () => {
+  /* istanbul ignore next */
   if (!config) {
     config = {
       port: parseInt(process.env.PORT || '3000'),
-      hostname: process.env.HOSTNAME ?? undefined,
+      hostname: process.env.HOSTNAME,
       proxyRequestTimeout: process.env.PROXY_REQUEST_TIMEOUT ? parseInt(process.env.PROXY_REQUEST_TIMEOUT) : undefined,
       logLevel: process.env.LOG_LEVEL || 'info',
       upstream: process.env.UPSTREAM_URL,
@@ -60,4 +61,12 @@ export const getConfig = () => {
   }
 
   return config;
+}
+
+/**
+ * Update configuration
+ * @param config
+ */
+export const updateConfig = (newConfig: Config): void => {
+  config = newConfig;
 }

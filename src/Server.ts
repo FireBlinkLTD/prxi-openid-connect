@@ -17,86 +17,47 @@ import { E404Handler } from './handlers/E404Handler';
 // Prepare logger
 
 let prxi: Prxi;
-const handler = async () => {
+export const start = async (): Promise<Prxi> => {
   const logger = getLogger('Server');
   const config = getConfig();
 
   logger.child({config}).info('Configuration');
 
-  try {
-    // Prepare proxy configuration
-    prxi = new Prxi({
-      logInfo: (message: any, ...params: any[]) => {
-        logger.child({params}).info(message);
-      },
-      logError: (message: any, ...params: any[]) => {
-        logger.child({params}).error(message);
-      },
-      port: config.port,
-      hostname: config.hostname,
-      errorHandler,
-      upstream: [
-        {
-          target: config.upstream,
-          requestHandlers: [
-            HealthHandler,
-            CallbackHandler,
-            new ProxyHandler(),
-            E404Handler,
-          ]
-        }
-      ]
-    });
+  // Prepare proxy configuration
+  prxi = new Prxi({
+    logInfo: (message: any, ...params: any[]) => {
+      logger.child({params}).info(message);
+    },
+    logError: (message: any, ...params: any[]) => {
+      /* istanbul ignore next */
+      logger.child({params}).error(message);
+    },
+    port: config.port,
+    hostname: config.hostname,
+    errorHandler,
+    upstream: [
+      {
+        target: config.upstream,
+        requestHandlers: [
+          HealthHandler,
+          CallbackHandler,
+          new ProxyHandler(),
+          E404Handler,
+        ]
+      }
+    ]
+  });
 
-    await OpenIDUtils.init();
+  await OpenIDUtils.init();
 
-    logger.child({config}).info('Starting listening connections');
-    await prxi.start();
+  logger.child({config}).info('Starting listening connections');
+  await prxi.start();
 
-    onShutdown(async () => {
-      logger.info('Gracefully shutting down the server');
-      await prxi.stop();
-    });
-  } catch (e) {
-    logger.child({error: e.message, config}).error('Failed to start proxy server');
-    process.exit(1);
-  }
+  /* istanbul ignore next */
+  onShutdown(async () => {
+    logger.info('Gracefully shutting down the server');
+    await prxi.stop();
+  });
+
+  return prxi;
 }
-
-/**
- * Try to stop proxy when error ocurred
- */
-const stopOnError = () => {
-  const promise = prxi?.stop();
-  if (promise) {
-    promise.finally(() => {
-      process.exit(1);
-    });
-  } else {
-    process.exit(1);
-  }
-}
-
-process.on('uncaughtException', (err) => {
-  try {
-    const logger = getLogger('Server');
-    logger.child({error: err}).error(`Unhandled exception: ${err.message}`);
-  } catch (e) {
-    console.error('Unhandled exception', err);
-  }
-
-  stopOnError();
-});
-
-process.on('unhandledRejection', (reason) => {
-  try {
-    const logger = getLogger('Server');
-    logger.child({reason}).error(`Unhandled rejection`);
-  } catch (e) {
-    console.error(`Unhandled rejection: ${reason}`);
-  }
-
-  stopOnError();
-});
-
-handler();

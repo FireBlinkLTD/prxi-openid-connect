@@ -1,5 +1,9 @@
 #!/bin/sh
 
+#############
+# VARIABLES #
+#############
+
 source ../.env
 
 KC_CONTAINER_NAME=keycloak
@@ -10,11 +14,31 @@ KC_AUTH_REALM=master
 
 KC_TEST_REALM=test
 KC_TEST_ROLE=test_role
-KC_TEST_USER=test
-KC_TEST_USER_PASSWORD=test
 
 KC_TEST_CLIENT=$OPENID_CLIENT_ID
 KC_TEST_CLIENT_SECRET=$OPENID_CLIENT_SECRET
+
+##################
+# WAITING FOR KC #
+##################
+
+echo "-> Waiting for Keycloak to boot"
+count=0
+until curl -s $KC_SERVER_ADDRESS > /dev/null
+do
+    count=$((count+1))
+    if [[ count == 300 ]]; then
+        echo '<- Keycloak boot timeout.'
+        exit 1
+    fi
+
+    sleep 1
+done
+echo "<- Keycloak is up & running"
+
+#####################
+# UTILITY FUNCTIONS #
+#####################
 
 docker_exec() {
   docker exec -it $KC_CONTAINER_NAME "$@"
@@ -32,6 +56,10 @@ kc_setup() {
     --user $KC_USERNAME \
     --password $KC_PASSWORD
 }
+
+############
+# SETUP KC #
+############
 
 kc_setup
 
@@ -90,4 +118,4 @@ rm /tmp/client_config.json
 echo "-> Using /tmp/client_config.json to create new client"
 kc create clients -r $KC_TEST_REALM -f /tmp/client_config.json
 
-
+echo "<- Keycloak setup completed"

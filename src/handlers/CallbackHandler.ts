@@ -18,7 +18,7 @@ export const CallbackHandler: RequestHandlerConfig = {
     const cookies = parse(req.headers.cookie);
     const originalPath = cookies[getConfig().cookies.names.originalPath] || '/';
 
-    // login wehbook handler (if any)
+    // login webhook handler (if any)
     if (getConfig().webhook.login) {
       logger.child({
         webhookURL: getConfig().webhook.login

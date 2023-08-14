@@ -14,6 +14,9 @@ OpenID Connect reverse proxy server that based on a zero-dependency proxy librar
 - `UPSTREAM_URL` - the upstream host URL (default value: none)
 - `HEALTH_PATH` - health check api PATH (default value: `/_prxi_/health`)
 - `LOG_LEVEL` - log level (default value: `info`)
+- `LOG_FILE` - log file path (default value: `/prxi/logs/prxi-openid-connect.log`)
+- `LOG_FILE_SIZE` - maximum log file size (default value: `10M`)
+- `LOG_FILE_ROTATE` - maximum number of rotated filed (default value: `5`)
 
 
 #### OIDC settings

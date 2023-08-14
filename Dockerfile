@@ -32,10 +32,14 @@ RUN yarn build && \
 
 # prepare final image
 FROM node:${NODE_TAG}
+
+WORKDIR /prxi
+
 COPY package.json package.json
 COPY --from=PREPARE_TINI /tini /tini
 COPY --from=PROD_DEPENDENCIES node_modules node_modules
 COPY --from=BUILD dist dist
+COPY .rotate.js .rotate.js
 
 ENTRYPOINT ["/tini", "--"]
 CMD ["npx", "start"]

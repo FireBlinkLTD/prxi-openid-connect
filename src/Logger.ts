@@ -14,6 +14,11 @@ const getLogger = (tag: string) => {
     mixin() {
       return { tag }
     },
+    formatters: {
+      level: (label) => {
+        return { level: label };
+      },
+    },
     base: {
       pid: undefined,
       hostname: getConfig().hostname,

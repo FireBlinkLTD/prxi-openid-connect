@@ -20,6 +20,8 @@
 !/yarn.lock
 !/tsconfig.json
 
+!/.rotate.js
+
 !/test
 !/test/**
 !/.mocharc.yml
