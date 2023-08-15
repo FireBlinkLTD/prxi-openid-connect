@@ -1,4 +1,4 @@
-# @prxi/openid-connect
+# fireblink/prxi-openid-connect
 
 OpenID Connect reverse proxy server that based on a zero-dependency proxy library [prxi](https://www.npmjs.com/package/prxi).
 
@@ -18,7 +18,6 @@ OpenID Connect reverse proxy server that based on a zero-dependency proxy librar
 - `LOG_FILE` - [optional] log file path (default value: `/prxi/logs/prxi-openid-connect.log`)
 - `LOG_FILE_SIZE` - [optional] maximum log file size (default value: `10M`)
 - `LOG_FILE_ROTATE` - [optional] maximum number of rotated filed (default value: `5`)
-
 
 #### OIDC settings
 - `OPENID_CONNECT_DISCOVER_URL` - discovery URL, public endpoint to fetch openid-configuration from. E.g.:
@@ -111,3 +110,8 @@ Example:
   - `refresh: boolean` - [optional] if true, service will use refresh token to fetch new set of tokens, might be useful when webhook endpoint updated user state and new set of tokens should be issued to a user
   - `reject: boolean` - [optional] if true, user won't get the tokens and will see an `Access denied` error
   - `reason: string` - [optional] reason to return instead of `Access denied`
+
+## Links
+
+- [GitHub Repository](https://github.com/FireBlinkLTD/prxi-openid-connect)
+- [@prixi/dev](https://www.npmjs.com/package/@prxi/dev) a simple CLI reverse proxy tool for local development purposes, can be handy to simulate fireblink/prxi-openid-connect setup without a need to run docker container and/or setup test IDP configuration
