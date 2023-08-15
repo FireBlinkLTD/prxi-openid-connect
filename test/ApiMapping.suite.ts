@@ -1,13 +1,18 @@
 import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
-import { ok, strictEqual } from "assert";
+import { deepEqual, ok, strictEqual } from "assert";
 
 @suite()
 class ApiMappingSuite extends BaseSuite {
   @test()
   async passIn() {
     const uri = '/api/test?q=str';
+
+    // add configuration for additional headers
+    getConfig().headers.claims.all = 'X-ALL-CLAIMS';
+    getConfig().headers.claims.matching = 'X-MATCHING-CLAIMS';
+
     await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
       await this.loginOnKeycloak(page);
       await this.navigate(page, getConfig().hostURL + uri);
@@ -16,6 +21,8 @@ class ApiMappingSuite extends BaseSuite {
       // validate query to be in place
       strictEqual(json.http.originalUrl, uri);
       strictEqual(json.request.query.q, 'str');
+      deepEqual(JSON.parse(json.request.headers['x-matching-claims']).realm, ["test_role"]);
+      deepEqual(JSON.parse(json.request.headers['x-all-claims']).realm.sort(), ["default-roles-test","offline_access","test_role","uma_authorization"]);
 
       // validate cookies
       ok(json.request.cookies[getConfig().cookies.names.accessToken]);

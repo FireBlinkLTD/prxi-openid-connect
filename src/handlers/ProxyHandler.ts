@@ -83,7 +83,18 @@ export class ProxyHandler implements RequestHandlerConfig {
       return;
     }
 
-    await proxyRequest();
+    const proxyRequestHeaders: Record<string, string> = {};
+    if (getConfig().headers.claims.all) {
+      proxyRequestHeaders[getConfig().headers.claims.all] = JSON.stringify(context.claims.all);
+    }
+
+    if (getConfig().headers.claims.matching) {
+      proxyRequestHeaders[getConfig().headers.claims.matching] = JSON.stringify(context.claims.matching);
+    }
+
+    await proxyRequest({
+      proxyRequestHeaders,
+    });
   }
 
   /**
@@ -208,6 +219,9 @@ export class ProxyHandler implements RequestHandlerConfig {
     const mapping: Mapping = context.mapping;
     const { claims } = mapping;
 
+    const matchingClaims: Record<string, string[]> = {};
+    const allClaims: Record<string, string[]> = {};
+
     if (!claims) {
       this.logger.child({mapping}).warn('Unable to find claims in the mapping');
       return false;
@@ -218,17 +232,29 @@ export class ProxyHandler implements RequestHandlerConfig {
       context.idTokenJWT,
     ], claimPaths);
 
+    let pass = false;
     for (const key of Object.keys(claims)) {
+      matchingClaims[key] = [];
       const expectedKeyClaims = claims[key];
-      const jwtKeyClaims = jwtClaims[key];
+      const jwtKeyClaims = allClaims[key] = jwtClaims[key];
 
       if (jwtKeyClaims?.length) {
         const intersection = expectedKeyClaims.filter(claim => jwtKeyClaims.includes(claim));
         if (intersection.length) {
-          this.logger.child({intersection}).info('Found intersection of claims, access allowed');
-          return true;
+          matchingClaims[key] = intersection;
+          pass = true;
         }
       }
+    }
+
+    context.claims = {
+      all: allClaims,
+      matching: matchingClaims,
+    };
+
+    if (pass) {
+      this.logger.child({matchingClaims}).info('Found intersection of claims, access allowed');
+      return true;
     }
 
     this.logger.child({

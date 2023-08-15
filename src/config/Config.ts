@@ -6,7 +6,9 @@ export interface Config {
   proxyRequestTimeout?: number;
   logLevel: string;
   upstream: string;
+
   healthPath: string;
+  logoutPath: string;
 
   hostURL: string;
   openid: {
@@ -16,6 +18,15 @@ export interface Config {
     clientSecret: string;
     scope: string;
   };
+
+  headers: {
+    claims: {
+      all?: string;
+      matching: string;
+    },
+    request?: Record<string, string | string[] | null>;
+    response?: Record<string, string | string[] | null>;
+  }
 
   cookies: {
     secure: boolean;

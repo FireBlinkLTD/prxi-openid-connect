@@ -16,7 +16,9 @@ export const getConfig = () => {
       proxyRequestTimeout: process.env.PROXY_REQUEST_TIMEOUT ? parseInt(process.env.PROXY_REQUEST_TIMEOUT) : undefined,
       logLevel: process.env.LOG_LEVEL || 'info',
       upstream: process.env.UPSTREAM_URL,
+
       healthPath: process.env.HEALTH_PATH || '/_prxi_/health',
+      logoutPath: process.env.LOGOUT_PATH || '/_prxi_/logout',
 
       hostURL: process.env.HOST_URL,
       openid: {
@@ -25,6 +27,15 @@ export const getConfig = () => {
         clientId: process.env.OPENID_CLIENT_ID,
         clientSecret: process.env.OPENID_CLIENT_SECRET,
         scope: process.env.OPENID_SCOPE || 'openid email profile'
+      },
+
+      headers: {
+        claims: {
+          all: process.env.HEADERS_CLAIMS_ALL,
+          matching: process.env.HEADERS_CLAIMS_MATCHING,
+        },
+        request: process.env.HEADERS_INJECT_REQUEST ? JSON.parse(process.env.HEADERS_INJECT_REQUEST) : undefined,
+        response: process.env.HEADERS_INJECT_RESPONSE ? JSON.parse(process.env.HEADERS_INJECT_RESPONSE) : undefined,
       },
 
       cookies: {
