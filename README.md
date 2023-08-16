@@ -2,6 +2,17 @@
 
 OpenID Connect reverse proxy server that based on a zero-dependency proxy library [prxi](https://www.npmjs.com/package/prxi).
 
+Can be used to provide SSO login (Authentication) functionality to any web application or API service, or both at the same time.
+In most of the cases prxi-openid-connect should be deployed in front of your application to intercept all the requests:
+
+![diagram](docs/assets/prxi-openid-connect.png)
+
+Proxy will handle authentication and authorization for individual path mappings, by allowing access only if JWT token contains allowed claims.
+
+Proxy clearly distinguish API and HTML requests, so when access token expires (and can't be refreshed) or missing API request won't return HTML of the login page, but a JSON error object and correct http status code (401). The same applies to a case when access is denied for a user for requested resource (403 error)
+
+In addition upon every login, logout or token refresh action prxi-openid-connect can call optional webhook endpoints and even change the flow based on the response. This might be handy to track audit logs, request token refresh one more time, etc.
+
 ## Configuration
 
 ### Environment Variables
@@ -39,11 +50,11 @@ OpenID Connect reverse proxy server that based on a zero-dependency proxy librar
 
 - `JWT_CLAIM_PATHS` - [optional] JSON object representing paths (array of strings) to obtain mappings from, e.g.
 
-```json
+```yaml
 {
-  // Every path should have a name.
-  // Value is an array of string representing nested object fields starting from JWT payload
-  // In this example payload.a.b.c will be used to access the claims array
+  # Every path should have a name.
+  # Value is an array of string representing nested object fields starting from JWT payload
+  # In this example payload.a.b.c will be used to access the claims array
   "name": [ "a", "b", "c" ]
 }
 ```
@@ -51,7 +62,7 @@ OpenID Connect reverse proxy server that based on a zero-dependency proxy librar
 - `MAPPINGS_PAGES` - [optional] represents JSON array with web application pages, generally should refer to the endpoints that return HTML content, as in case of 401 error, proxy server will redirect user to the IDP login page.
 - `MAPPINGS_API` - [optional] represents JSON array with API paths, works similar to `MAPPINGS_PAGES` but in case of 401 error server will respond with error:
 
-```json
+```yaml
 {
   "error": true,
   "details": {
@@ -63,17 +74,17 @@ OpenID Connect reverse proxy server that based on a zero-dependency proxy librar
 
 Mappings format:
 
-```json
+```yaml
 [
-  // each mapping can have 0 or many mappings
+  # each mapping can have 0 or many mappings
   {
-    // each mapping requires a RegEx pattern to match the path, note: ^ and $ characters can be omitted
+    # each mapping requires a RegEx pattern to match the path, note: ^ and $ characters can be omitted
     "pattern": "/public/.*",
-    // for non-public mappings claims should be provided that granted access to the resource
+    # for non-public mappings claims should be provided that granted access to the resource
     "claims": {
-      // claims can reference one or many named paths (refer to the JWT_CLAIM_PATHS environment variable configuration)
+      # claims can reference one or many named paths (refer to the JWT_CLAIM_PATHS environment variable configuration)
       "name": [
-        // a hit on either one of the claims can grant user access to the resource
+        # a hit on either one of the claims can grant user access to the resource
         "role1",
         "role2"
       ]
@@ -96,11 +107,11 @@ It is highly recommended to intercept 401 errors on the Web Application side and
 - `HEADERS_INJECT_RESPONSE` - [optional] JSON object of additional headers to apply to the response
 
 Example:
-```json
+```yaml
 {
-  // null value removes the header from the request/response
+  # null value removes the header from the request/response
   "Authorization": null,
-  // non-null value adds/overrides header in the request/response
+  # non-null value adds/overrides header in the request/response
   "Content-Security-Policy": "default-src 'self'"
 }
 ```

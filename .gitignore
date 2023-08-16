@@ -3,6 +3,9 @@
 !/bin
 !/bin/**
 
+!/docs
+!/docs/**
+
 !/.env
 !/.gitignore
 
