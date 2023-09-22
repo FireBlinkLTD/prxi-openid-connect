@@ -22,6 +22,15 @@ export class BaseSuite {
     await this.prxi?.stop();
   }
 
+  protected async reloadPrxiWith(config: Partial<Config>): Promise<void> {
+    await this.prxi.stop();
+    updateConfig({
+      ...this.originalConfig,
+      ...config,
+    });
+    this.prxi = await start();
+  }
+
   /**
    * Fetch
    * @param url
