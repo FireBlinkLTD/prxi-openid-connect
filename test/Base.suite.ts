@@ -84,6 +84,9 @@ export class BaseSuite {
     await page.keyboard.type(process.env.KC_TEST_USER_PASSWORD);
 
     await page.click('#kc-login');
+
+    // give 0.5s timeout for all the redirects to finish
+    await new Promise<void>(res => setTimeout(res, 500));
   }
 
   /**
