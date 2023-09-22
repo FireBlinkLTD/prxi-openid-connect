@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { invalidateAuthCookies, sendErrorResponse, sendJsonResponse, sendRedirect, setAuthCookies, setCookies } from "../utils/ResponseUtils";
+import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies, setCookies } from "../utils/ResponseUtils";
 import { parse } from 'cookie';
 import { getConfig } from "../config/getConfig";
 import { Mapping } from "../config/Mapping";

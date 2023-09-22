@@ -36,6 +36,7 @@ export const CallbackHandler: RequestHandlerConfig = {
       });
 
       if (!resp.ok) {
+        logger.child({status: resp.status}).error('Login webhook request failed');
         throw new Error('Unable to make a login webhook request');
       }
 
@@ -47,7 +48,13 @@ export const CallbackHandler: RequestHandlerConfig = {
 
       // check if user access should be rejected (can be useful if webhook endpoint blocked user)
       if (result.reject) {
-        sendErrorResponse(req, 403, result.reason || 'Access denied', res);
+        logger.child({originalPath}).info('Webhook rejected the request');
+        if (getConfig().redirect.pageRequest.e403) {
+          sendRedirect(res, getConfig().redirect.pageRequest.e403);
+        } else {
+          sendErrorResponse(req, 403, result.reason || 'Forbidden', res);
+        }
+
         return;
       }
     }
