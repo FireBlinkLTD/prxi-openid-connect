@@ -24,7 +24,7 @@ jobs:
         run: yarn
 
       - name: Init Keycloak
-        run: bash bin/0-init-keycloak.sh
+        run: script -e -c "bash bin/0-init-keycloak.sh"
 
       - name: Run tests
         run: yarn test
