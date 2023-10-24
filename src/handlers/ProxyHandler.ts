@@ -5,7 +5,7 @@ import { parse } from 'cookie';
 import { getConfig } from "../config/getConfig";
 import { Mapping } from "../config/Mapping";
 import { JWTVerificationResult, OpenIDUtils } from "../utils/OpenIDUtils";
-import { decode, Jwt } from 'jsonwebtoken';
+import { decode, Jwt, JwtPayload, verify } from 'jsonwebtoken';
 import getLogger from "../Logger";
 import { Logger } from "pino";
 
@@ -73,7 +73,16 @@ export class ProxyHandler implements RequestHandlerConfig {
       return;
     }
 
-    let breakFlow = await this.handleAuthenticationFlow(req, res, method, path, context);
+    const cookies = this.getCookies(req);
+    let metaPayload: Record<string, any> = null;
+    const metaToken = cookies[getConfig().cookies.names.meta];
+    if (metaToken) {
+      metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
+        complete: false,
+      });
+    }
+
+    let breakFlow = await this.handleAuthenticationFlow(cookies, req, res, method, path, context, metaPayload?.p);
     if (breakFlow) {
       return;
     }
@@ -92,13 +101,22 @@ export class ProxyHandler implements RequestHandlerConfig {
       proxyRequestHeaders[getConfig().headers.claims.matching] = JSON.stringify(context.claims.matching);
     }
 
+    if (getConfig().headers.meta && metaPayload?.p) {
+      proxyRequestHeaders[getConfig().headers.meta] = JSON.stringify(metaPayload.p);
+    }
+
     await proxyRequest({
       proxyRequestHeaders,
     });
   }
 
+  private getCookies(req: IncomingMessage): Record<string, string> {
+    return req.headers.cookie ? parse(req.headers.cookie) : {};
+  }
+
   /**
    * Handle authentication flow
+   * @param cookies
    * @param req
    * @param res
    * @param method
@@ -106,9 +124,7 @@ export class ProxyHandler implements RequestHandlerConfig {
    * @param context
    * @returns
    */
-  private async handleAuthenticationFlow(req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>): Promise<boolean> {
-    const cookies = req.headers.cookie ? parse(req.headers.cookie) : {};
-
+  private async handleAuthenticationFlow(cookies: Record<string, string>, req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>, metaPayload: Record<string, any>): Promise<boolean> {
     let accessToken = context.accessToken = cookies[getConfig().cookies.names.accessToken];
     let idToken = context.idToken = cookies[getConfig().cookies.names.idToken];
     let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.idToken];
@@ -126,7 +142,13 @@ export class ProxyHandler implements RequestHandlerConfig {
       let { verificationResult: refreshTokenVerificationResult } = await this.parseTokenAndVerify(accessToken);
       if (refreshTokenVerificationResult === JWTVerificationResult.SUCCESS) {
         const tokens = await OpenIDUtils.refreshTokens(refreshToken);
-        setAuthCookies(res, tokens);
+
+        let metaToken;
+        if (metaPayload) {
+          metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
+        }
+
+        setAuthCookies(res, tokens, metaToken);
 
         accessToken = context.accessToken = tokens.access_token;
         idToken = context.idToken = tokens.id_token;

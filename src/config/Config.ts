@@ -20,6 +20,7 @@ export interface Config {
   };
 
   headers: {
+    meta?: string;
     claims: {
       all?: string;
       matching: string;
@@ -35,6 +36,7 @@ export interface Config {
       idToken: string;
       refreshToken: string;
       originalPath: string;
+      meta: string;
     }
   },
 
@@ -45,6 +47,7 @@ export interface Config {
   },
 
   jwt: {
+    metaTokenSecret?: string;
     claimPaths: Record<string, string[]>,
   },
 

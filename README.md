@@ -29,6 +29,7 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 - `LOG_FILE` - [optional] log file path (default value: `/prxi/logs/prxi-openid-connect.log`)
 - `LOG_FILE_SIZE` - [optional] maximum log file size (default value: `10M`)
 - `LOG_FILE_ROTATE` - [optional] maximum number of rotated filed (default value: `5`)
+- `JWT_META_TOKEN_SECRET` - [optional] secret string to sign JWT with custom user meta attributes (if returned by the login webhook)
 
 #### OIDC settings
 - `OPENID_CONNECT_DISCOVER_URL` - discovery URL, public endpoint to fetch openid-configuration from. E.g.:
@@ -45,6 +46,7 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 - `COOKIES_ID_TOKEN` - [optional] ID Token cookie name (default value: `prxi-it`)
 - `COOKIES_REFRESH_TOKEN` - [optional] Refresh Token cookie name (default value: `prxi-rt`)
 - `COOKIES_ORIGINAL_PATH` - [optional] Cookie name to hold originally request path, only applicable to the HTML page request (default value: `prxi-op`)
+- `COOKIES_META` - [optional] Cookie name to hold meta information about the user, only used if login webhook returns `meta` object (default value: `prxi-meta`)
 
 #### Mappings & JWT Claims Path
 
@@ -121,6 +123,7 @@ Example:
   - `refresh: boolean` - [optional] if true, service will use refresh token to fetch new set of tokens, might be useful when webhook endpoint updated user state and new set of tokens should be issued to a user
   - `reject: boolean` - [optional] if true, user won't get the tokens and will see an `Access denied` error
   - `reason: string` - [optional] reason to return instead of `Access denied`
+  - `meta: Record<string, any>` - [optional] custom meta attributes associated to a user (make sure to use `JWT_META_TOKEN_SECRET` env variable to set secret and `HEADERS_META` to set the header name to proxy value in)
 
 ## Links
 

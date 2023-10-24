@@ -23,6 +23,7 @@
     "pino-pretty": "pino-pretty",
     "dev": "tsc-watch --noClear --onSuccess \"node dist/src/index.js\" | yarn pino-pretty",
     "build": "tsc",
+    "test:keycloak": "bash bin/1-test-keycloak.sh",
     "test:clean": "rimraf ./coverage",
     "test": "nyc --reporter=html --reporter=text mocha",
     "test:coverage": "nyc report --reporter=text-lcov > ./coverage/coverage.lcov"
