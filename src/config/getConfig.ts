@@ -30,6 +30,7 @@ export const getConfig = () => {
       },
 
       headers: {
+        meta: process.env.HEADERS_META,
         claims: {
           all: process.env.HEADERS_CLAIMS_ALL,
           matching: process.env.HEADERS_CLAIMS_MATCHING,
@@ -45,6 +46,7 @@ export const getConfig = () => {
           idToken: process.env.COOKIES_ID_TOKEN || 'prxi-it',
           refreshToken: process.env.COOKIES_REFRESH_TOKEN || 'prxi-rt',
           originalPath: process.env.COOKIES_ORIGINAL_PATH || 'prxi-op',
+          meta: process.env.COOKIES_META || 'prxi-meta',
         }
       },
 
@@ -55,6 +57,7 @@ export const getConfig = () => {
       },
 
       jwt: {
+        metaTokenSecret: process.env.JWT_META_TOKEN_SECRET,
         claimPaths: process.env.JWT_CLAIM_PATHS ? JSON.parse(process.env.JWT_CLAIM_PATHS) : {},
       },
 

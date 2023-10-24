@@ -14,6 +14,7 @@ export const CallbackHandler: RequestHandlerConfig = {
   handle: async (req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest) => {
     const logger = getLogger('CallbackHandler');
     let tokens = await OpenIDUtils.exchangeCode(req);
+    let metaToken: string;
 
     const cookies = parse(req.headers.cookie);
     const originalPath = cookies[getConfig().cookies.names.originalPath] || '/';
@@ -57,9 +58,14 @@ export const CallbackHandler: RequestHandlerConfig = {
 
         return;
       }
+
+      if (result.meta) {
+        logger.child({meta: result.meta}).debug('Webhook returned custom user attributes');
+        metaToken = OpenIDUtils.prepareMetaToken(result.meta);
+      }
     }
 
-    setAuthCookies(res, tokens);
+    setAuthCookies(res, tokens, metaToken);
     await sendRedirect(res, `${getConfig().hostURL}${originalPath}`);
   }
 }

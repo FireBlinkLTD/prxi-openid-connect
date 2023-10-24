@@ -11,6 +11,7 @@ class PublicMappingSuite extends BaseSuite {
 
   private static mockPort = 7777;
   private static rejectURL = `http://localhost:${PublicMappingSuite.mockPort}/reject`;
+  private static metaURL = `http://localhost:${PublicMappingSuite.mockPort}/meta`;
 
   public async before() {
     await this.initMockServer();
@@ -53,6 +54,30 @@ class PublicMappingSuite extends BaseSuite {
       strictEqual(
         json.http.originalUrl,
         new URL(getConfig().redirect.pageRequest.e403).pathname
+      );
+    });
+  }
+
+  @test()
+  async testMeta(): Promise<void> {
+    await this.reloadPrxiWith({
+      webhook: {
+        login: PublicMappingSuite.metaURL,
+      }
+    });
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+      const text = await this.getTextFromPage(page);
+
+      const json = JSON.parse(text);
+      // validate query to be in place
+      strictEqual(
+        json.request.headers[getConfig().headers.meta],
+        JSON.stringify({
+          bool: true,
+          str: 'string',
+        })
       );
     });
   }

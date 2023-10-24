@@ -3,7 +3,7 @@ import getLogger from '../Logger';
 import { getConfig } from '../config/getConfig';
 import { IncomingMessage } from 'http';
 import jwkToBuffer = require('jwk-to-pem');
-import { Jwt, verify } from 'jsonwebtoken';
+import { Jwt, verify, sign } from 'jsonwebtoken';
 import { Logger } from 'pino';
 
 export enum JWTVerificationResult {
@@ -102,6 +102,22 @@ export class OpenIDUtils {
       }).warn('JWT failed validation');
       return JWTVerificationResult.FAILURE;
     }
+  }
+
+  /**
+   * Prepare JWT with meta payload
+   * @param payload
+   * @returns
+   */
+  public static prepareMetaToken(payload: Record<string, any>): string {
+    if (!getConfig().jwt.metaTokenSecret) {
+      OpenIDUtils.logger.error('JWT_META_TOKEN_SECRET environment variable is not provided, could not generate custom user attributes JWT for provided metadata');
+      throw new Error('JWT_META_TOKEN_SECRET configuration is missing');
+    }
+
+    return sign({p: payload}, getConfig().jwt.metaTokenSecret, {
+      expiresIn: '5y'
+    });
   }
 
   /**

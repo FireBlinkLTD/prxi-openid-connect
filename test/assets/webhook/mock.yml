@@ -1,10 +1,29 @@
 openapi: '3.0.2'
 
 info:
-  title: Mock WebHook Reject
+  title: Mock WebHook
   version: '1.0'
 
 paths:
+  /meta:
+    post:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      bool:
+                        type: boolean
+                        x-faker: 'boolean(1)'
+                      str:
+                        type: string
+
   /reject:
     post:
       responses:

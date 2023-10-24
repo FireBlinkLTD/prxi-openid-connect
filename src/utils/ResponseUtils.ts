@@ -41,6 +41,10 @@ export const invalidateAuthCookies = (resp: ServerResponse): void => {
       value: 'n/a',
       expires: new Date(0),
     },
+    [getConfig().cookies.names.meta]: {
+      value: 'n/a',
+      expires: new Date(0),
+    },
   };
 
   setCookies(resp, accessCookies);
@@ -51,7 +55,7 @@ export const invalidateAuthCookies = (resp: ServerResponse): void => {
  * @param resp
  * @param tokens
  */
-export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet): void => {
+export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken?: string): void => {
   getLogger('ResponseUtils').info('Setting auth cookies');
   const accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
@@ -77,6 +81,12 @@ export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet): void => 
   if (tokens.refresh_token) {
     accessCookies[getConfig().cookies.names.refreshToken] = {
       value: tokens.refresh_token,
+    }
+  }
+
+  if (metaToken) {
+    accessCookies[getConfig().cookies.names.meta] = {
+      value: metaToken
     }
   }
 
