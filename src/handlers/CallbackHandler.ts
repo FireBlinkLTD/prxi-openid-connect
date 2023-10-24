@@ -1,11 +1,10 @@
-import { IncomingMessage, ServerResponse, get } from "http";
+import { IncomingMessage, ServerResponse } from "http";
 import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
 import { getConfig } from "../config/getConfig";
 import { sendErrorResponse, sendRedirect, setAuthCookies } from "../utils/ResponseUtils";
 import { OpenIDUtils } from "../utils/OpenIDUtils";
 import { parse } from "cookie";
 import getLogger from "../Logger";
-import { sign } from 'jsonwebtoken';
 
 export const CallbackHandler: RequestHandlerConfig = {
   isMatching: (method: HttpMethod, path: string) => {
