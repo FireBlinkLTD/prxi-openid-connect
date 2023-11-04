@@ -69,7 +69,8 @@ export const getConfig = () => {
       },
 
       webhook: {
-        login: process.env.WEBHOOK_LOGIN_URL
+        login: process.env.WEBHOOK_LOGIN_URL,
+        logout: process.env.WEBHOOK_LOGOUT_URL,
       }
     }
   }

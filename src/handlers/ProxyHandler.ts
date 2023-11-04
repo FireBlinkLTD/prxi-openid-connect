@@ -1,13 +1,13 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
 import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies, setCookies } from "../utils/ResponseUtils";
-import { parse } from 'cookie';
 import { getConfig } from "../config/getConfig";
 import { Mapping } from "../config/Mapping";
 import { JWTVerificationResult, OpenIDUtils } from "../utils/OpenIDUtils";
-import { decode, Jwt, JwtPayload, verify } from 'jsonwebtoken';
+import { Jwt, JwtPayload, verify } from 'jsonwebtoken';
 import getLogger from "../Logger";
 import { Logger } from "pino";
+import { RequestUtils } from "../utils/RequestUtils";
 
 export class ProxyHandler implements RequestHandlerConfig {
   private logger: Logger;
@@ -73,7 +73,7 @@ export class ProxyHandler implements RequestHandlerConfig {
       return;
     }
 
-    const cookies = this.getCookies(req);
+    const cookies = RequestUtils.getCookies(req);
     let metaPayload: Record<string, any> = null;
     const metaToken = cookies[getConfig().cookies.names.meta];
     if (metaToken) {
@@ -110,10 +110,6 @@ export class ProxyHandler implements RequestHandlerConfig {
     });
   }
 
-  private getCookies(req: IncomingMessage): Record<string, string> {
-    return req.headers.cookie ? parse(req.headers.cookie) : {};
-  }
-
   /**
    * Handle authentication flow
    * @param cookies
@@ -129,8 +125,8 @@ export class ProxyHandler implements RequestHandlerConfig {
     let idToken = context.idToken = cookies[getConfig().cookies.names.idToken];
     let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.idToken];
 
-    let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await this.parseTokenAndVerify(accessToken);
-    let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await this.parseTokenAndVerify(context.idTokenJWT);
+    let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
+    let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(context.idTokenJWT);
     context.idTokenJWT = idTokenJWT;
 
     // if access token is missing or expired attempt to refresh tokens
@@ -139,7 +135,7 @@ export class ProxyHandler implements RequestHandlerConfig {
       accessTokenVerificationResult === JWTVerificationResult.EXPIRED ||
       idTokenVerificationResult === JWTVerificationResult.EXPIRED
     ) {
-      let { verificationResult: refreshTokenVerificationResult } = await this.parseTokenAndVerify(accessToken);
+      let { verificationResult: refreshTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
       if (refreshTokenVerificationResult === JWTVerificationResult.SUCCESS) {
         const tokens = await OpenIDUtils.refreshTokens(refreshToken);
 
@@ -154,8 +150,8 @@ export class ProxyHandler implements RequestHandlerConfig {
         idToken = context.idToken = tokens.id_token;
         refreshToken = context.refreshToken = tokens.refresh_token;
 
-        const accessVerification = await this.parseTokenAndVerify(accessToken);
-        const idVerification = await this.parseTokenAndVerify(idToken);
+        const accessVerification = await OpenIDUtils.parseTokenAndVerify(accessToken);
+        const idVerification = await OpenIDUtils.parseTokenAndVerify(idToken);
         accessTokenJWT = accessVerification.jwt;
         accessTokenVerificationResult = accessVerification.verificationResult;
 
@@ -322,26 +318,6 @@ export class ProxyHandler implements RequestHandlerConfig {
     }
 
     return result;
-  }
-
-  /**
-   * Parse and verify token
-   */
-  private async parseTokenAndVerify(token: string): Promise<{jwt: Jwt, verificationResult: JWTVerificationResult}> {
-    let jwt: Jwt;
-    let verificationResult: JWTVerificationResult = JWTVerificationResult.MISSING;
-
-    if (token) {
-      jwt = decode(token, {
-        complete: true,
-      });
-      verificationResult = await OpenIDUtils.verifyJWT(token, jwt);
-    }
-
-    return {
-      jwt,
-      verificationResult
-    }
   }
 
   /**

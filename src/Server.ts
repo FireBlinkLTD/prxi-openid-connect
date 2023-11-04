@@ -36,6 +36,7 @@ export const start = async (): Promise<Prxi> => {
     port: config.port,
     hostname: config.hostname,
     errorHandler,
+    proxyRequestTimeout: config.proxyRequestTimeout,
     responseHeaders: config.headers.response,
     proxyRequestHeaders: config.headers.request,
     upstream: [
@@ -43,7 +44,7 @@ export const start = async (): Promise<Prxi> => {
         target: config.upstream,
         requestHandlers: [
           HealthHandler,
-          LogoutHandler,
+          new LogoutHandler(),
           CallbackHandler,
           new ProxyHandler(),
           E404Handler,

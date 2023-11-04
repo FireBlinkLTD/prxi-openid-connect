@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
-import { strictEqual } from "assert";
+import { ok, strictEqual } from "assert";
 
 const OpenApiMocker = require('open-api-mocker');
 
@@ -11,6 +11,8 @@ class PublicMappingSuite extends BaseSuite {
 
   private static mockPort = 7777;
   private static rejectURL = `http://localhost:${PublicMappingSuite.mockPort}/reject`;
+  private static logout = `http://localhost:${PublicMappingSuite.mockPort}/logout`;
+  private static logoutFailure = `http://localhost:${PublicMappingSuite.mockPort}/logout-fail`;
   private static metaURL = `http://localhost:${PublicMappingSuite.mockPort}/meta`;
 
   public async before() {
@@ -79,6 +81,59 @@ class PublicMappingSuite extends BaseSuite {
           str: 'string',
         })
       );
+    });
+  }
+
+  @test()
+  async logoutEndpoint(): Promise<void> {
+    await this.reloadPrxiWith({
+      webhook: {
+        login: PublicMappingSuite.metaURL,
+        logout: PublicMappingSuite.logout,
+      }
+    });
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+
+      const uri = '/api/test';
+      await this.navigate(page, getConfig().hostURL + uri);
+      await this.wait(200);
+      await this.getJsonFromPage(page);
+
+      // logout
+      await this.logout(page);
+
+      await this.navigate(page, getConfig().hostURL + uri);
+      await this.wait(200);
+      const text = await this.getTextFromPage(page);
+      strictEqual(text, '401: Unauthorized')
+    });
+  }
+
+  @test()
+  async logoutFailEndpoint(): Promise<void> {
+    await this.reloadPrxiWith({
+      webhook: {
+        logout: PublicMappingSuite.logoutFailure,
+      }
+    });
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+
+      const uri = '/api/test';
+      await this.navigate(page, getConfig().hostURL + uri);
+      await this.wait(200);
+      await this.getJsonFromPage(page);
+
+      // logout
+      await this.logout(page);
+
+      await this.navigate(page, getConfig().hostURL + uri);
+      await this.wait(200);
+      const text = await this.getTextFromPage(page);
+      strictEqual(text, '401: Unauthorized')
     });
   }
 }

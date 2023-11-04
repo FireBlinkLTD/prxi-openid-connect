@@ -11,7 +11,7 @@ let domain: string;
  * @returns
  */
 const getDomain = (): string => {
-  if (domain) {
+  if (!domain) {
     domain = new URL(getConfig().hostURL).hostname;
   }
 
@@ -64,6 +64,7 @@ export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken
     }
   };
 
+  /* istanbul ignore else */
   if (tokens.access_token) {
     accessCookies[getConfig().cookies.names.accessToken] = {
       value: tokens.access_token,
@@ -71,6 +72,7 @@ export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken
     }
   }
 
+  /* istanbul ignore else */
   if (tokens.id_token) {
     accessCookies[getConfig().cookies.names.idToken] = {
       value: tokens.id_token,
@@ -78,6 +80,7 @@ export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken
     }
   }
 
+  /* istanbul ignore else */
   if (tokens.refresh_token) {
     accessCookies[getConfig().cookies.names.refreshToken] = {
       value: tokens.refresh_token,
@@ -174,6 +177,7 @@ export const sendResponse = async (statusCode: number, contentType: string, cont
     resp.write(content, (error: Error) => {
       resp.end();
 
+      /* istanbul ignore next */
       if (error) {
         return rej(error);
       }

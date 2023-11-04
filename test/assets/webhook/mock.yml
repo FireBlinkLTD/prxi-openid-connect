@@ -24,6 +24,34 @@ paths:
                       str:
                         type: string
 
+  /logout-fail:
+    post:
+      responses:
+        '500':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    x-faker: 'boolean(0)'
+
+  /logout:
+    post:
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    x-faker: 'boolean(1)'
+
   /reject:
     post:
       responses:

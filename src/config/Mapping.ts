@@ -7,7 +7,7 @@ export interface Mapping {
 }
 
 /**
-  * Prepare mappings file from the environment variable value
+  * Prepare mappings from the environment variable value
   * @param value
   * @param requireClaims
   * @returns
@@ -38,7 +38,7 @@ export const prepareMappings = (value: string, requireClaims: boolean): Mapping[
      });
 
      if (requireClaims && !r.claims) {
-       throw new Error(`restrictTo configuration is missing for value: ${value}`);
+       throw new Error(`"claims" configuration is missing for value: ${JSON.stringify(r)}`);
      }
    }
  }

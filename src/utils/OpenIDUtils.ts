@@ -3,7 +3,7 @@ import getLogger from '../Logger';
 import { getConfig } from '../config/getConfig';
 import { IncomingMessage } from 'http';
 import jwkToBuffer = require('jwk-to-pem');
-import { Jwt, verify, sign } from 'jsonwebtoken';
+import { Jwt, verify, sign, decode } from 'jsonwebtoken';
 import { Logger } from 'pino';
 
 export enum JWTVerificationResult {
@@ -37,6 +37,26 @@ export class OpenIDUtils {
     });
 
     await OpenIDUtils.updateKeys();
+  }
+
+  /**
+   * Parse and verify token
+   */
+  static async parseTokenAndVerify(token: string): Promise<{jwt: Jwt, verificationResult: JWTVerificationResult}> {
+    let jwt: Jwt;
+    let verificationResult: JWTVerificationResult = JWTVerificationResult.MISSING;
+
+    if (token) {
+      jwt = decode(token, {
+        complete: true,
+      });
+      verificationResult = await OpenIDUtils.verifyJWT(token, jwt);
+    }
+
+    return {
+      jwt,
+      verificationResult
+    }
   }
 
   /**
