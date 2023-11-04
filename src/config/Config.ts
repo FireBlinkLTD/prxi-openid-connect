@@ -60,5 +60,6 @@ export interface Config {
 
   webhook: {
     login?: string;
+    logout?: string;
   }
 }

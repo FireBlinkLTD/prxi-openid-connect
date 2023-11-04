@@ -72,6 +72,7 @@ export class BaseSuite {
       } catch (e) {
         try {
           const path = `puppeteer-error-${Date.now()}.png`;
+          console.log(e);
           console.log(`Error occurred while on page: ${page.url()}; Screenshot name: ${path}`);
           await page.screenshot({ path });
         } finally {
@@ -83,6 +84,19 @@ export class BaseSuite {
     }
   }
 
+  /**
+   * Access logout endpoint
+   * @param page
+   */
+  protected async logout(page: Page): Promise<void> {
+    console.log('[puppeteer] -> Logging out');
+    await this.navigate(page, getConfig().hostURL + getConfig().logoutPath);
+  }
+
+  /**
+   * Fill KC login form
+   * @param page
+   */
   protected async loginOnKeycloak(page: Page): Promise<void> {
     console.log('[puppeteer] -> Login in');
 
@@ -106,6 +120,14 @@ export class BaseSuite {
   protected async navigate(page: Page, url: string): Promise<void> {
     console.log('[puppeteer] -> navigating to ', url);
     await page.goto(url);
+  }
+
+  /**
+   * Utility function to await certain amount of milliseconds
+   * @param time
+   */
+  protected async wait(time: number): Promise<void> {
+    await new Promise(res => setTimeout(res, time));
   }
 
   /**

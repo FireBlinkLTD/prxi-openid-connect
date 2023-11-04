@@ -1,6 +1,6 @@
 # fireblink/prxi-openid-connect
 
-OpenID Connect reverse proxy server that based on a zero-dependency proxy library [prxi](https://www.npmjs.com/package/prxi).
+[OpenID Connect reverse proxy server](https://hub.docker.com/r/fireblink/prxi-openid-connect) that based on a zero-dependency proxy library [prxi](https://www.npmjs.com/package/prxi).
 
 Can be used to provide SSO login (Authentication) functionality to any web application or API service, or both at the same time.
 In most of the cases prxi-openid-connect should be deployed in front of your application to intercept all the requests:
@@ -127,5 +127,6 @@ Example:
 
 ## Links
 
+- [Docker Image](https://hub.docker.com/r/fireblink/prxi-openid-connect) official Docker image
 - [GitHub Repository](https://github.com/FireBlinkLTD/prxi-openid-connect)
 - [@prixi/dev](https://www.npmjs.com/package/@prxi/dev) a simple CLI reverse proxy tool for local development purposes, can be handy to simulate fireblink/prxi-openid-connect setup without a need to run docker container and/or setup test IDP configuration

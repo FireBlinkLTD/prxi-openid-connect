@@ -24,7 +24,7 @@
     "dev": "tsc-watch --noClear --onSuccess \"node dist/src/index.js\" | yarn pino-pretty",
     "build": "tsc",
     "test:keycloak": "bash bin/1-test-keycloak.sh",
-    "test:clean": "rimraf ./coverage",
+    "test:clean": "rimraf ./coverage && rm puppeteer-error-*",
     "test": "nyc --reporter=html --reporter=text mocha",
     "test:coverage": "nyc report --reporter=text-lcov > ./coverage/coverage.lcov"
   },
@@ -90,6 +90,6 @@
     "node-graceful-shutdown": "^1.1.5",
     "openid-client": "^5.4.3",
     "pino": "^8.14.1",
-    "prxi": "^0.2.0"
+    "prxi": "^0.2.3"
   }
 }
