@@ -2,6 +2,8 @@
 
 !/.nvmrc
 
+!/.npmignore
+
 !/bin
 !/bin/**
 

@@ -18,6 +18,9 @@
     "authentication",
     "authorization"
   ],
+  "bin": {
+    "prxi-openid-connect": "dist/src/index.js"
+  },
   "scripts": {
     "start": "node dist/src/index.js | rotate-logs",
     "pino-pretty": "pino-pretty",
@@ -84,7 +87,7 @@
   "dependencies": {
     "@vrbo/pino-rotating-file": "^4.4.0",
     "cookie": "^0.5.0",
-    "dotenv": "^16.2.0",
+    "dotenv": "^16.3.1",
     "jsonwebtoken": "^9.0.1",
     "jwk-to-pem": "^2.0.5",
     "node-graceful-shutdown": "^1.1.5",

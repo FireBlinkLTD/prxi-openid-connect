@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { Prxi } from "prxi";
 import getLogger from "./Logger";
 import { start } from "./Server";

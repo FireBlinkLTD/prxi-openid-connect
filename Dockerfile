@@ -1,4 +1,4 @@
-ARG NODE_TAG=18.17.0-alpine
+ARG NODE_TAG=20.9.0-alpine
 
 # prepare dev dependencies
 FROM node:${NODE_TAG} as DEV_DEPENDENCIES
