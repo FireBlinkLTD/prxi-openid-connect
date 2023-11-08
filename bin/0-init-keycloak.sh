@@ -6,7 +6,7 @@
 
 source ../.env
 
-KC_CONTAINER_NAME=keycloak
+KC_CONTAINER_NAME=prixi-openidc-keycloak
 KC_USERNAME=admin
 KC_PASSWORD=admin
 KC_SERVER_ADDRESS=http://localhost:8080

@@ -5,6 +5,7 @@ import { sendErrorResponse, sendRedirect, setAuthCookies } from "../utils/Respon
 import { OpenIDUtils } from "../utils/OpenIDUtils";
 import { parse } from "cookie";
 import getLogger from "../Logger";
+import { RequestUtils } from "../utils/RequestUtils";
 
 export const CallbackHandler: RequestHandlerConfig = {
   isMatching: (method: HttpMethod, path: string) => {
@@ -16,7 +17,7 @@ export const CallbackHandler: RequestHandlerConfig = {
     let tokens = await OpenIDUtils.exchangeCode(req);
     let metaToken: string;
 
-    const cookies = parse(req.headers.cookie);
+    const cookies = RequestUtils.getCookies(req);
     const originalPath = cookies[getConfig().cookies.names.originalPath] || '/';
 
     // login webhook handler (if any)

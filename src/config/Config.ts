@@ -9,6 +9,7 @@ export interface Config {
 
   healthPath: string;
   logoutPath: string;
+  loginPath: string;
 
   hostURL: string;
   openid: {

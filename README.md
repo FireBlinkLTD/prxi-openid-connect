@@ -23,8 +23,9 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 - `HOST_URL` - Public facing Host URL
 - `PROXY_REQUEST_TIMEOUT` - [optional] timeout for the proxy requests (default value: `30000`, 30s)
 - `UPSTREAM_URL` - the upstream host URL (default value: none)
-- `HEALTH_PATH` - [optional] health check api PATH (default value: `/_prxi_/health`)
-- `LOGOUT_PATH` - [optional] end session/logout PATH (default value: `/_prxi_/logout`)
+- `HEALTH_PATH` - [optional] health check api path (default value: `/_prxi_/health`)
+- `LOGOIN_PATH` - [optional] end login endpoint path (default value: `/_prxi_/login`)
+- `LOGOUT_PATH` - [optional] end session/logout path (default value: `/_prxi_/logout`)
 - `LOG_LEVEL` - [optional] log level (default value: `info`)
 - `LOG_FILE` - [optional] log file path (default value: `/prxi/logs/prxi-openid-connect.log`)
 - `LOG_FILE_SIZE` - [optional] maximum log file size (default value: `10M`)

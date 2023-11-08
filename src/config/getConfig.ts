@@ -19,6 +19,7 @@ export const getConfig = () => {
 
       healthPath: process.env.HEALTH_PATH || '/_prxi_/health',
       logoutPath: process.env.LOGOUT_PATH || '/_prxi_/logout',
+      loginPath: process.env.LOGIN_PATH || '/_prxi_/login',
 
       hostURL: process.env.HOST_URL,
       openid: {

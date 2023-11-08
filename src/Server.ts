@@ -14,6 +14,7 @@ import { errorHandler } from './handlers/ErrorHandler';
 import { OpenIDUtils } from './utils/OpenIDUtils';
 import { E404Handler } from './handlers/E404Handler';
 import { LogoutHandler } from './handlers/LogoutHandler';
+import { LoginHandler } from './handlers/LoginHandler';
 
 // Prepare logger
 
@@ -44,6 +45,7 @@ export const start = async (): Promise<Prxi> => {
         target: config.upstream,
         requestHandlers: [
           HealthHandler,
+          new LoginHandler(),
           new LogoutHandler(),
           CallbackHandler,
           new ProxyHandler(),
