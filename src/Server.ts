@@ -15,6 +15,7 @@ import { OpenIDUtils } from './utils/OpenIDUtils';
 import { E404Handler } from './handlers/E404Handler';
 import { LogoutHandler } from './handlers/LogoutHandler';
 import { LoginHandler } from './handlers/LoginHandler';
+import { WebSocketHandler } from './handlers/WebsocketHandler';
 
 // Prepare logger
 
@@ -50,7 +51,10 @@ export const start = async (): Promise<Prxi> => {
           CallbackHandler,
           new ProxyHandler(),
           E404Handler,
-        ]
+        ],
+        webSocketHandlers: [
+          new WebSocketHandler()
+        ],
       }
     ]
   });

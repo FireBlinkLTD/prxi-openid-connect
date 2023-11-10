@@ -4,7 +4,7 @@ import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies,
 import { getConfig } from "../config/getConfig";
 import { Mapping } from "../config/Mapping";
 import { JWTVerificationResult, OpenIDUtils } from "../utils/OpenIDUtils";
-import { Jwt, JwtPayload, verify } from 'jsonwebtoken';
+import { JwtPayload, verify } from 'jsonwebtoken';
 import getLogger from "../Logger";
 import { Logger } from "pino";
 import { RequestUtils } from "../utils/RequestUtils";
@@ -87,7 +87,7 @@ export class ProxyHandler implements RequestHandlerConfig {
       return;
     }
 
-    breakFlow = await this.handleAuthorizationFlow(req, res, method, path, context);
+    breakFlow = this.handleAuthorizationFlow(req, res, method, path, context);
     if (breakFlow) {
       return;
     }
@@ -212,9 +212,10 @@ export class ProxyHandler implements RequestHandlerConfig {
    * @param context
    * @returns
    */
-  private async handleAuthorizationFlow(req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>): Promise<boolean> {
-    const allowedAccess = await this.isAllowedAccess(context);
-    if (!allowedAccess) {
+  private handleAuthorizationFlow(req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>): boolean {
+    const claims = RequestUtils.isAllowedAccess(this.logger, context.accessTokenJWT, context.idTokenJWT, context.mapping);
+
+    if (!claims) {
       if (context.page && getConfig().redirect.pageRequest.e403) {
         sendRedirect(res, getConfig().redirect.pageRequest.e403);
       } else {
@@ -224,100 +225,9 @@ export class ProxyHandler implements RequestHandlerConfig {
       return true;
     }
 
+    context.claims = claims;
+
     return false;
-  }
-
-  /**
-   * Check if access is allowed
-   * @param context
-   * @returns
-   */
-  private async isAllowedAccess(context: Record<string, any>): Promise<boolean> {
-    const { claimPaths } = getConfig().jwt;
-    const mapping: Mapping = context.mapping;
-    const { claims } = mapping;
-
-    const matchingClaims: Record<string, string[]> = {};
-    const allClaims: Record<string, string[]> = {};
-
-    if (!claims) {
-      this.logger.child({mapping}).warn('Unable to find claims in the mapping');
-      return false;
-    }
-
-    const jwtClaims = this.extractJWTClaims([
-      context.accessTokenJWT,
-      context.idTokenJWT,
-    ], claimPaths);
-
-    let pass = false;
-    for (const key of Object.keys(claims)) {
-      matchingClaims[key] = [];
-      const expectedKeyClaims = claims[key];
-      const jwtKeyClaims = allClaims[key] = jwtClaims[key];
-
-      if (jwtKeyClaims?.length) {
-        const intersection = expectedKeyClaims.filter(claim => jwtKeyClaims.includes(claim));
-        if (intersection.length) {
-          matchingClaims[key] = intersection;
-          pass = true;
-        }
-      }
-    }
-
-    context.claims = {
-      all: allClaims,
-      matching: matchingClaims,
-    };
-
-    if (pass) {
-      this.logger.child({matchingClaims}).info('Found intersection of claims, access allowed');
-      return true;
-    }
-
-    this.logger.child({
-      expectedClaims: claims,
-      actualClaims: jwtClaims,
-    }).info('No intersection of claims found, access forbidden');
-    return false;
-  }
-
-  /**
-   * Extract JWT Claims for paths from all tokens
-   * @param tokens
-   * @param claimPaths
-   * @returns
-   */
-  private extractJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, string[]> {
-    const result: Record<string, string[]> = {};
-
-    for (const name of Object.keys(claimPaths)) {
-      const claims: string[] = [];
-      const claimPath = claimPaths[name];
-
-      for (const jwt of tokens) {
-        if (jwt) {
-          let target: any = jwt.payload;
-          let fail = false;
-          for (let path of claimPath) {
-            if (target[path]) {
-              target = target[path];
-            } else {
-              fail = true;
-              break;
-            }
-          }
-
-          if (!fail) {
-            claims.push(...target);
-          }
-        }
-      }
-
-      result[name] = claims;
-    }
-
-    return result;
   }
 
   /**

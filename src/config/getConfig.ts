@@ -53,8 +53,9 @@ export const getConfig = () => {
 
       mappings: {
         public: prepareMappings(process.env.MAPPINGS_PUBLIC, false),
+        ws: prepareMappings(process.env.MAPPINGS_PAGES, false),
         api: prepareMappings(process.env.MAPPINGS_API, true),
-        pages: prepareMappings(process.env.MAPPINGS_PAGES, true),
+        pages: prepareMappings(process.env.MAPPINGS_PAGES, true),        
       },
 
       jwt: {

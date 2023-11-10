@@ -45,6 +45,7 @@ export interface Config {
     public: Mapping[];
     api: Mapping[];
     pages: Mapping[];
+    ws: Mapping[];
   },
 
   jwt: {

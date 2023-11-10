@@ -93,6 +93,6 @@
     "node-graceful-shutdown": "^1.1.5",
     "openid-client": "^5.4.3",
     "pino": "^8.14.1",
-    "prxi": "^0.2.3"
+    "prxi": "^0.3.0"
   }
 }
