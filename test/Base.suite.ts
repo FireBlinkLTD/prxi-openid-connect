@@ -8,7 +8,7 @@ import { Prxi } from 'prxi';
 
 export class BaseSuite {
   private originalConfig: Config;
-  private prxi: Prxi;
+  protected prxi: Prxi;
 
   public async before() {
     // get original configuration
