@@ -35,8 +35,20 @@
     "type": "git",
     "url": "git+https://github.com/FireBlinkLTD/prxi-openid-connect.git"
   },
+  "dependencies": {
+    "@vrbo/pino-rotating-file": "^4.4.0",
+    "cookie": "^0.6.0",
+    "dotenv": "^16.3.1",
+    "jsonwebtoken": "^9.0.1",
+    "jwk-to-pem": "^2.0.5",
+    "node-graceful-shutdown": "^1.1.5",
+    "openid-client": "^5.4.3",
+    "pino": "^8.14.1",
+    "prxi": "^0.3.0"
+  },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
+    "@types/cookie": "^0.5.4",
     "@types/jsonwebtoken": "^9.0.2",
     "@types/jwk-to-pem": "^2.0.1",
     "@types/mocha": "^10.0.1",
@@ -49,7 +61,6 @@
     "pino-pretty": "^10.0.0",
     "puppeteer": "^21.0.3",
     "rimraf": "^5.0.1",
-    "socket.io": "^4.6.2",
     "socket.io-client": "^4.6.2",
     "source-map-support": "^0.5.21",
     "ts-node": "^10.9.1",
@@ -83,16 +94,5 @@
       "name": "Vladyslav Tkachenko",
       "email": "vlad@fireblink.com"
     }
-  ],
-  "dependencies": {
-    "@vrbo/pino-rotating-file": "^4.4.0",
-    "cookie": "^0.5.0",
-    "dotenv": "^16.3.1",
-    "jsonwebtoken": "^9.0.1",
-    "jwk-to-pem": "^2.0.5",
-    "node-graceful-shutdown": "^1.1.5",
-    "openid-client": "^5.4.3",
-    "pino": "^8.14.1",
-    "prxi": "^0.3.0"
-  }
+  ]
 }

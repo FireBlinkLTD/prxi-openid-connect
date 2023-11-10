@@ -3,7 +3,6 @@ import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
 import { getConfig } from "../config/getConfig";
 import { sendErrorResponse, sendRedirect, setAuthCookies } from "../utils/ResponseUtils";
 import { OpenIDUtils } from "../utils/OpenIDUtils";
-import { parse } from "cookie";
 import getLogger from "../Logger";
 import { RequestUtils } from "../utils/RequestUtils";
 

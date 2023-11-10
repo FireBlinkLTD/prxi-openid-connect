@@ -75,6 +75,8 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 }
 ```
 
+- `MAPPINGS_WS` - [optional] represents JSON array with WS paths, works similar to `MAPPINGS_API`, but in case of 401 error server will respond with just the status code.
+
 Mappings format:
 
 ```yaml
@@ -83,7 +85,7 @@ Mappings format:
   {
     # each mapping requires a RegEx pattern to match the path, note: ^ and $ characters can be omitted
     "pattern": "/public/.*",
-    # for non-public mappings claims should be provided that granted access to the resource
+    # for non-public mappings (pages and APIs) claims should be provided to grant access to the resource
     "claims": {
       # claims can reference one or many named paths (refer to the JWT_CLAIM_PATHS environment variable configuration)
       "name": [
