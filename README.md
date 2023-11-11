@@ -138,7 +138,7 @@ Example:
 
 This project is distributed under dual licensing.
 
-## Quick Summary
+### Quick Summary
 
 This project can be used for free of charge for:
 - Personal Uses
@@ -148,6 +148,6 @@ This project also provides **32** days of evaluation period for **commercial** p
 
 More can be found in [LICENSE.md](https://github.com/FireBlinkLTD/prxi-openid-connect/blob/main/LICENSE.md)
 
-## Contact Information
+### Contact Information
 
 To obtain a commercial license [click here](https://fireblink.com/#contact-us) to get in a contact.
