@@ -3,8 +3,9 @@
   "version": "0.0.1",
   "description": "Prxi based OpenID Connect auth proxy server",
   "main": "dist/index.js",
-  "author": "Vladyslav Tkachenko <vlad@fireblink.com>",
-  "license": "MIT",
+  "author": "FireBlink LTD",
+  "homepage": "https://github.com/FireBlinkLTD/prxi-openid-connect",
+  "license": "The Prosperity Public License 3.0.0",
   "engines": {
     "node": ">=18.0.0"
   },

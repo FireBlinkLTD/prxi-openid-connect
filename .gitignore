@@ -1,5 +1,7 @@
 *
 
+!/.gitignore
+
 !/.nvmrc
 
 !/.npmignore
@@ -11,12 +13,12 @@
 !/docs/**
 
 !/.env
-!/.gitignore
 
 !/.github
 !/.github/**
 
 !/README.md
+!/LICENSE.md
 
 !/.editorconfig
 

@@ -133,3 +133,21 @@ Example:
 - [Docker Image](https://hub.docker.com/r/fireblink/prxi-openid-connect) official Docker image
 - [GitHub Repository](https://github.com/FireBlinkLTD/prxi-openid-connect)
 - [@prixi/dev](https://www.npmjs.com/package/@prxi/dev) a simple CLI reverse proxy tool for local development purposes, can be handy to simulate fireblink/prxi-openid-connect setup without a need to run docker container and/or setup test IDP configuration
+
+## License
+
+This project is distributed under dual licensing.
+
+## Quick Summary
+
+This project can be used for free of charge for:
+- Personal Uses
+- Noncommercial Organizations
+
+This project also provides **32** days of evaluation period for **commercial** products and services. After the evaluation period additional license should be obtained or project stopped from being used.
+
+More can be found in [LICENSE.md](https://github.com/FireBlinkLTD/prxi-openid-connect/blob/main/LICENSE.md)
+
+## Contact Information
+
+To obtain a commercial license [click here](https://fireblink.com/#contact-us) to get in a contact.
