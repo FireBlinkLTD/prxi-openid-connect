@@ -30,11 +30,16 @@ export const getConfig = () => {
         scope: process.env.OPENID_SCOPE || 'openid email profile'
       },
 
+      extractClaims: process.env.EXTRACT_CLAIMS ? process.env.EXTRACT_CLAIMS.split(',').map(c => c.trim()).filter(c => c.length) : [],
+
       headers: {
         meta: process.env.HEADERS_META,
         claims: {
-          all: process.env.HEADERS_CLAIMS_ALL,
-          matching: process.env.HEADERS_CLAIMS_MATCHING,
+          auth: {
+            all: process.env.HEADERS_CLAIMS_AUTH_ALL,
+            matching: process.env.HEADERS_CLAIMS_AUTH_MATCHING,
+          },
+          proxy: process.env.HEADERS_CLAIMS_PROXY,
         },
         request: process.env.HEADERS_INJECT_REQUEST ? JSON.parse(process.env.HEADERS_INJECT_REQUEST) : undefined,
         response: process.env.HEADERS_INJECT_RESPONSE ? JSON.parse(process.env.HEADERS_INJECT_RESPONSE) : undefined,

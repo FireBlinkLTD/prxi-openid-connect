@@ -10,8 +10,8 @@ class ApiMappingSuite extends BaseSuite {
     const uri = '/api/test?q=str';
 
     // add configuration for additional headers
-    getConfig().headers.claims.all = 'X-ALL-CLAIMS';
-    getConfig().headers.claims.matching = 'X-MATCHING-CLAIMS';
+    getConfig().headers.claims.auth.all = 'X-ALL-CLAIMS';
+    getConfig().headers.claims.auth.matching = 'X-MATCHING-CLAIMS';
 
     await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
       await this.loginOnKeycloak(page);

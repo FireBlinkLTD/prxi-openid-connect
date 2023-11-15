@@ -93,12 +93,16 @@ export class ProxyHandler implements RequestHandlerConfig {
     }
 
     const proxyRequestHeaders: Record<string, string> = {};
-    if (getConfig().headers.claims.all) {
-      proxyRequestHeaders[getConfig().headers.claims.all] = JSON.stringify(context.claims.all);
+    if (getConfig().headers.claims.auth.all) {
+      proxyRequestHeaders[getConfig().headers.claims.auth.all] = JSON.stringify(context.claims?.auth?.all || {});
     }
 
-    if (getConfig().headers.claims.matching) {
-      proxyRequestHeaders[getConfig().headers.claims.matching] = JSON.stringify(context.claims.matching);
+    if (getConfig().headers.claims.auth.matching) {
+      proxyRequestHeaders[getConfig().headers.claims.auth.matching] = JSON.stringify(context.claims?.auth?.matching || {});
+    }
+
+    if (getConfig().headers.claims.proxy) {
+      proxyRequestHeaders[getConfig().headers.claims.proxy] = JSON.stringify(context.claims?.proxy || {});
     }
 
     if (getConfig().headers.meta && metaPayload?.p) {

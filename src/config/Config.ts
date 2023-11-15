@@ -20,11 +20,16 @@ export interface Config {
     scope: string;
   };
 
+  extractClaims: string[];
+
   headers: {
     meta?: string;
     claims: {
-      all?: string;
-      matching: string;
+      auth: {
+        all?: string;
+        matching: string;
+      },
+      proxy: string,
     },
     request?: Record<string, string | string[] | null>;
     response?: Record<string, string | string[] | null>;

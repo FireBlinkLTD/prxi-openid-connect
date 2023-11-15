@@ -104,10 +104,15 @@ It is highly recommended to intercept 401 errors on the Web Application side and
 - `REDIRECT_PAGE_REQUEST_ON_404` - [optional] URL to redirect when no mapping found for requested path
 - `REDIRECT_PAGE_REQUEST_ON_403` - [optional] URL to redirect when no access is denied, as none of the JWT claims matching mappings
 
+#### JWT Claims
+
+- `EXTRACT_CLAIMS` - comma separated list of claims to extract from both Auth/ID token payloads, e.g. "username, email". Value is passed as a JSON with the `HEADERS_CLAIMS` header to the upstream service.
+
 #### Headers
 
-- `HEADERS_CLAIMS_ALL` - [optional] header name to pass all the claims extracted from access/id tokens before calling the upstream service
-- `HEADERS_CLAIMS_MATCHING` - [optional] header name to pass just the matching claims extracted from access/id tokens before calling the upstream service
+- `HEADERS_CLAIMS_AUTH_ALL` - [optional] header name to pass all the auth claims extracted from access/id tokens before calling the upstream service
+- `HEADERS_CLAIMS_AUTH_MATCHING` - [optional] header name to pass just the matching auth claims extracted from access/id tokens before calling the upstream service
+- `HEADERS_CLAIMS_PROXY` - [optional] header name to pass extracted attributes from both access and id tokens (useful to extract such information as username and/or email), definition of claims to pass should be described via `EXTRACT_CLAIMS` environment variable (see above)
 - `HEADERS_INJECT_REQUEST` - [optional] JSON object of additional headers to apply to the request before calling the upstream service
 - `HEADERS_INJECT_RESPONSE` - [optional] JSON object of additional headers to apply to the response
 
@@ -123,10 +128,10 @@ Example:
 
 #### Webhooks
 - `WEBHOOK_LOGIN_URL` - [optional]optional URL to make a POST request to, response should be a json object with the following optional fields
-  - `refresh: boolean` - [optional] if true, service will use refresh token to fetch new set of tokens, might be useful when webhook endpoint updated user state and new set of tokens should be issued to a user
-  - `reject: boolean` - [optional] if true, user won't get the tokens and will see an `Access denied` error
-  - `reason: string` - [optional] reason to return instead of `Access denied`
-  - `meta: Record<string, any>` - [optional] custom meta attributes associated to a user (make sure to use `JWT_META_TOKEN_SECRET` env variable to set secret and `HEADERS_META` to set the header name to proxy value in)
+- `refresh: boolean` - [optional] if true, service will use refresh token to fetch new set of tokens, might be useful when webhook endpoint updated user state and new set of tokens should be issued to a user
+- `reject: boolean` - [optional] if true, user won't get the tokens and will see an `Access denied` error
+- `reason: string` - [optional] reason to return instead of `Access denied`
+- `meta: Record<string, any>` - [optional] custom meta attributes associated to a user (make sure to use `JWT_META_TOKEN_SECRET` env variable to set secret and `HEADERS_META` to set the header name to proxy value in)
 
 ## Links
 

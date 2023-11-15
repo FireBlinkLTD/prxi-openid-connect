@@ -60,8 +60,8 @@ class WebSocketSuite extends BaseSuite {
     }
 
     if (additionalHeaders) {
-      getConfig().headers.claims.all = 'X-ALL-CLAIMS';
-      getConfig().headers.claims.matching = 'X-MATCHING-CLAIMS';
+      getConfig().headers.claims.auth.all = 'X-ALL-CLAIMS';
+      getConfig().headers.claims.auth.matching = 'X-MATCHING-CLAIMS';
     }
 
     await this.prxi.stop();
