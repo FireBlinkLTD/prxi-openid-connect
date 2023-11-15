@@ -27,7 +27,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).info('Handling public mapping');
+      this.logger.child({mapping: context.mapping}).debug('Handling public mapping');
       context.public = true;
 
       return true;
@@ -40,7 +40,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).info('Handling api mapping');
+      this.logger.child({mapping: context.mapping}).debug('Handling api mapping');
       context.api = true;
 
       return true;
@@ -53,7 +53,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).info('Handling page mapping');
+      this.logger.child({mapping: context.mapping}).debug('Handling page mapping');
       context.page = true;
 
       return true;
@@ -93,12 +93,16 @@ export class ProxyHandler implements RequestHandlerConfig {
     }
 
     const proxyRequestHeaders: Record<string, string> = {};
-    if (getConfig().headers.claims.all) {
-      proxyRequestHeaders[getConfig().headers.claims.all] = JSON.stringify(context.claims.all);
+    if (getConfig().headers.claims.auth.all) {
+      proxyRequestHeaders[getConfig().headers.claims.auth.all] = JSON.stringify(context.claims?.auth?.all || {});
     }
 
-    if (getConfig().headers.claims.matching) {
-      proxyRequestHeaders[getConfig().headers.claims.matching] = JSON.stringify(context.claims.matching);
+    if (getConfig().headers.claims.auth.matching) {
+      proxyRequestHeaders[getConfig().headers.claims.auth.matching] = JSON.stringify(context.claims?.auth?.matching || {});
+    }
+
+    if (getConfig().headers.claims.proxy) {
+      proxyRequestHeaders[getConfig().headers.claims.proxy] = JSON.stringify(context.claims?.proxy || {});
     }
 
     if (getConfig().headers.meta && metaPayload?.p) {
@@ -127,6 +131,8 @@ export class ProxyHandler implements RequestHandlerConfig {
 
     let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
     let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(context.idTokenJWT);
+
+    context.accessTokenJWT = accessTokenJWT;
     context.idTokenJWT = idTokenJWT;
 
     // if access token is missing or expired attempt to refresh tokens
@@ -135,7 +141,7 @@ export class ProxyHandler implements RequestHandlerConfig {
       accessTokenVerificationResult === JWTVerificationResult.EXPIRED ||
       idTokenVerificationResult === JWTVerificationResult.EXPIRED
     ) {
-      let { verificationResult: refreshTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
+      let { verificationResult: refreshTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(refreshToken);
       if (refreshTokenVerificationResult === JWTVerificationResult.SUCCESS) {
         const tokens = await OpenIDUtils.refreshTokens(refreshToken);
 
@@ -152,9 +158,9 @@ export class ProxyHandler implements RequestHandlerConfig {
 
         const accessVerification = await OpenIDUtils.parseTokenAndVerify(accessToken);
         const idVerification = await OpenIDUtils.parseTokenAndVerify(idToken);
-        accessTokenJWT = accessVerification.jwt;
         accessTokenVerificationResult = accessVerification.verificationResult;
 
+        context.accessTokenJWT = accessVerification.jwt;
         context.idTokenJWT = idVerification.jwt;
       }
     }
@@ -173,32 +179,30 @@ export class ProxyHandler implements RequestHandlerConfig {
             expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
           }
         });
+      }
 
+      if (context.mapping.auth.required) {
+        if (context.page) {
+          await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
+        } else {
+          await sendErrorResponse(req, 401, 'Unauthorized', res);
+        }
+
+        return true;
+      } else {
+        delete context.idTokenJWT;
+        delete context.accessTokenJWT;
+      }
+    } else if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
+      if (context.page) {
+        invalidateAuthCookies(res);
         await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
-
-        return true;
-      }
-
-      await sendErrorResponse(req, 401, 'Unauthorized', res);
-
-      return true;
-    }
-
-    if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
-      if (context.api) {
+      } else {
         sendErrorResponse(req, 401, 'Unauthorized', res);
-
-        return true;
       }
 
-      // for page request redirect to the login page
-      invalidateAuthCookies(res);
-      await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
       return true;
     }
-
-    context.accessToken = accessToken;
-    context.accessTokenJWT = accessTokenJWT
 
     return false;
   }

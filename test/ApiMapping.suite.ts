@@ -10,8 +10,8 @@ class ApiMappingSuite extends BaseSuite {
     const uri = '/api/test?q=str';
 
     // add configuration for additional headers
-    getConfig().headers.claims.all = 'X-ALL-CLAIMS';
-    getConfig().headers.claims.matching = 'X-MATCHING-CLAIMS';
+    getConfig().headers.claims.auth.all = 'X-ALL-CLAIMS';
+    getConfig().headers.claims.auth.matching = 'X-MATCHING-CLAIMS';
 
     await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
       await this.loginOnKeycloak(page);
@@ -29,6 +29,11 @@ class ApiMappingSuite extends BaseSuite {
       ok(json.request.cookies[getConfig().cookies.names.idToken]);
       ok(json.request.cookies[getConfig().cookies.names.refreshToken]);
       ok(!json.request.cookies[getConfig().cookies.names.originalPath]);
+
+      // validate proxy claims
+      const proxyClaims = JSON.parse(json.request.headers[getConfig().headers.claims.proxy]);
+      strictEqual(proxyClaims.username, 'test');
+      ok(proxyClaims.realmRoles.indexOf('test_role') >= 0);
     });
   }
 

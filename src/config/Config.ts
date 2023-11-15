@@ -23,8 +23,11 @@ export interface Config {
   headers: {
     meta?: string;
     claims: {
-      all?: string;
-      matching: string;
+      auth: {
+        all?: string;
+        matching: string;
+      },
+      proxy: string,
     },
     request?: Record<string, string | string[] | null>;
     response?: Record<string, string | string[] | null>;
@@ -50,7 +53,8 @@ export interface Config {
 
   jwt: {
     metaTokenSecret?: string;
-    claimPaths: Record<string, string[]>,
+    authClaimPaths: Record<string, string[]>,
+    proxyClaimPaths: Record<string, string[]>;
   },
 
   redirect: {

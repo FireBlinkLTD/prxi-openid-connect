@@ -22,71 +22,104 @@ export class RequestUtils {
    * @param accessTokenJWT
    * @param idTokenJWT
    * @param mapping
-   * @param noClaimsAllowedAccess - when true and no claims provided in mapping access will be allowed, in else case denied
    * @returns false if access denied, object with claims when allowed
    */
-  public static isAllowedAccess(logger: Logger, accessTokenJWT: Jwt, idTokenJWT: Jwt, mapping: Mapping, noClaimsAllowedAccess = false): {all: Record<string, string[]>, matching: Record<string, string[]>} | false {
-    const { claimPaths } = getConfig().jwt;
-    const { claims } = mapping;
+  public static isAllowedAccess(logger: Logger, accessTokenJWT: Jwt, idTokenJWT: Jwt, mapping: Mapping): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
+    const { authClaimPaths } = getConfig().jwt;
+    const { auth } = mapping;
 
-    const matchingClaims: Record<string, string[]> = {};
-    const allClaims: Record<string, string[]> = {};
+    const matchingAuthClaims: Record<string, string[]> = {};
+    const allAuthClaims: Record<string, string[]> = {};
 
-    if (!claims) {
-      if (noClaimsAllowedAccess) {
-        logger.child({mapping}).debug('No claims found, access allowed');
-        return {
-          all: {},
-          matching: {}
-        };
-      }
-
-      logger.child({mapping}).warn('Unable to find claims in the mapping');
-      return false;
-    }
-
-    const jwtClaims = RequestUtils.extractJWTClaims([
+    const jwtClaims = RequestUtils.extractAuthJWTClaims([
       accessTokenJWT,
       idTokenJWT,
-    ], claimPaths);
+    ], authClaimPaths);
 
     let pass = false;
-    for (const key of Object.keys(claims)) {
-      matchingClaims[key] = [];
-      const expectedKeyClaims = claims[key];
-      const jwtKeyClaims = allClaims[key] = jwtClaims[key];
+    for (const key of Object.keys(auth.claims)) {
+      matchingAuthClaims[key] = [];
+      const expectedKeyClaims = auth.claims[key];
+      const jwtKeyClaims = allAuthClaims[key] = jwtClaims[key];
 
       if (jwtKeyClaims?.length) {
         const intersection = expectedKeyClaims.filter(claim => jwtKeyClaims.includes(claim));
         if (intersection.length) {
-          matchingClaims[key] = intersection;
+          matchingAuthClaims[key] = intersection;
           pass = true;
         }
       }
     }
 
     if (pass) {
-      logger.child({matchingClaims}).info('Found intersection of claims, access allowed');
+      logger.child({matchingAuthClaims}).debug('Found intersection of claims, access allowed');
+    }
+
+    if (pass || !auth.required) {
+      const proxy = RequestUtils.extractRawJWTClaims([
+        accessTokenJWT,
+        idTokenJWT,
+      ], getConfig().jwt.proxyClaimPaths);
+
       return {
-        all: allClaims,
-        matching: matchingClaims,
+        auth: {
+          all: allAuthClaims,
+          matching: matchingAuthClaims,
+        },
+        proxy,
       };
     }
 
     logger.child({
-      expectedClaims: claims,
+      expectedClaims: auth.claims,
       actualClaims: jwtClaims,
-    }).info('No intersection of claims found, access forbidden');
+    }).info('No intersection of claims found, access denied');
+
     return false;
   }
 
   /**
-   * Extract JWT Claims for paths from all tokens
+   * Extract JWT Claims for provided paths from all provided tokens
    * @param tokens
    * @param claimPaths
    * @returns
    */
-  private static extractJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, string[]> {
+  private static extractRawJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, unknown> {
+    const result: Record<string, unknown> = {};
+
+    for (const name of Object.keys(claimPaths)) {
+      const claimPath = claimPaths[name];
+
+      for (const jwt of tokens) {
+        if (jwt) {
+          let target: any = jwt.payload;
+          let fail = false;
+          for (let path of claimPath) {
+            if (target[path]) {
+              target = target[path];
+            } else {
+              fail = true;
+              break;
+            }
+          }
+
+          if (!fail) {
+            result[name] = target;
+          }
+        }
+      }
+    }
+
+    return result;
+  }
+
+  /**
+   * Extract Auth JWT Claims for provided paths from all provided tokens
+   * @param tokens
+   * @param claimPaths
+   * @returns
+   */
+  private static extractAuthJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, string[]> {
     const result: Record<string, string[]> = {};
 
     for (const name of Object.keys(claimPaths)) {

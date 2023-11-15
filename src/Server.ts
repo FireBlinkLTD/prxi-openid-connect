@@ -24,12 +24,12 @@ export const start = async (): Promise<Prxi> => {
   const logger = getLogger('Server');
   const config = getConfig();
 
-  logger.child({config}).info('Configuration');
+  logger.child({config}).debug('Configuration');
 
   // Prepare proxy configuration
   prxi = new Prxi({
     logInfo: (message: any, ...params: any[]) => {
-      logger.child({params}).info(message);
+      logger.child({params}).debug(message);
     },
     logError: (message: any, ...params: any[]) => {
       /* istanbul ignore next */

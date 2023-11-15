@@ -33,8 +33,11 @@ export const getConfig = () => {
       headers: {
         meta: process.env.HEADERS_META,
         claims: {
-          all: process.env.HEADERS_CLAIMS_ALL,
-          matching: process.env.HEADERS_CLAIMS_MATCHING,
+          auth: {
+            all: process.env.HEADERS_CLAIMS_AUTH_ALL,
+            matching: process.env.HEADERS_CLAIMS_AUTH_MATCHING,
+          },
+          proxy: process.env.HEADERS_CLAIMS_PROXY,
         },
         request: process.env.HEADERS_INJECT_REQUEST ? JSON.parse(process.env.HEADERS_INJECT_REQUEST) : undefined,
         response: process.env.HEADERS_INJECT_RESPONSE ? JSON.parse(process.env.HEADERS_INJECT_RESPONSE) : undefined,
@@ -52,15 +55,16 @@ export const getConfig = () => {
       },
 
       mappings: {
-        public: prepareMappings(process.env.MAPPINGS_PUBLIC, false),
-        ws: prepareMappings(process.env.MAPPINGS_WS, false),
-        api: prepareMappings(process.env.MAPPINGS_API, true),
-        pages: prepareMappings(process.env.MAPPINGS_PAGES, true),
+        public: prepareMappings(process.env.MAPPINGS_PUBLIC),
+        ws: prepareMappings(process.env.MAPPINGS_WS),
+        api: prepareMappings(process.env.MAPPINGS_API),
+        pages: prepareMappings(process.env.MAPPINGS_PAGES),
       },
 
       jwt: {
         metaTokenSecret: process.env.JWT_META_TOKEN_SECRET,
-        claimPaths: process.env.JWT_CLAIM_PATHS ? JSON.parse(process.env.JWT_CLAIM_PATHS) : {},
+        authClaimPaths: process.env.JWT_AUTH_CLAIM_PATHS ? JSON.parse(process.env.JWT_AUTH_CLAIM_PATHS) : {},
+        proxyClaimPaths: process.env.JWT_PROXY_CLAIM_PATHS ? JSON.parse(process.env.JWT_PROXY_CLAIM_PATHS) : {},
       },
 
       redirect: {
