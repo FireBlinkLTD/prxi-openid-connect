@@ -27,7 +27,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).info('Handling public mapping');
+      this.logger.child({mapping: context.mapping}).debug('Handling public mapping');
       context.public = true;
 
       return true;
@@ -40,7 +40,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).info('Handling api mapping');
+      this.logger.child({mapping: context.mapping}).debug('Handling api mapping');
       context.api = true;
 
       return true;
@@ -53,7 +53,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).info('Handling page mapping');
+      this.logger.child({mapping: context.mapping}).debug('Handling page mapping');
       context.page = true;
 
       return true;

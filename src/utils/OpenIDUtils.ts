@@ -26,7 +26,7 @@ export class OpenIDUtils {
     const logger = OpenIDUtils.logger = getLogger('OpenIDUtils');
     logger.child({
       configuration: getConfig().openid
-    }).info('Init OpenID Utils');
+    }).debug('Init OpenID Utils');
 
     OpenIDUtils.issuer = await Issuer.discover(getConfig().openid.discoverURL);
     OpenIDUtils.client = new OpenIDUtils.issuer.Client({

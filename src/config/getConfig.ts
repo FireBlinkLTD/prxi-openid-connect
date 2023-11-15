@@ -64,7 +64,7 @@ export const getConfig = () => {
       jwt: {
         metaTokenSecret: process.env.JWT_META_TOKEN_SECRET,
         authClaimPaths: process.env.JWT_AUTH_CLAIM_PATHS ? JSON.parse(process.env.JWT_AUTH_CLAIM_PATHS) : {},
-        proxyClaims: process.env.JWT_PROXY_CLAIMS ? process.env.JWT_PROXY_CLAIMS.split(',').map(c => c.trim()).filter(c => c.length) : [],
+        proxyClaimPaths: process.env.JWT_PROXY_CLAIM_PATHS ? JSON.parse(process.env.JWT_PROXY_CLAIM_PATHS) : {},
       },
 
       redirect: {

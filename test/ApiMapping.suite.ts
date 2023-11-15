@@ -29,6 +29,11 @@ class ApiMappingSuite extends BaseSuite {
       ok(json.request.cookies[getConfig().cookies.names.idToken]);
       ok(json.request.cookies[getConfig().cookies.names.refreshToken]);
       ok(!json.request.cookies[getConfig().cookies.names.originalPath]);
+
+      // validate proxy claims
+      const proxyClaims = JSON.parse(json.request.headers[getConfig().headers.claims.proxy]);
+      strictEqual(proxyClaims.username, 'test');
+      ok(proxyClaims.realmRoles.indexOf('test_role') >= 0);
     });
   }
 

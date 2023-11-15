@@ -54,7 +54,7 @@ export interface Config {
   jwt: {
     metaTokenSecret?: string;
     authClaimPaths: Record<string, string[]>,
-    proxyClaims: string[];
+    proxyClaimPaths: Record<string, string[]>;
   },
 
   redirect: {

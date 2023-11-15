@@ -23,7 +23,7 @@ const getDomain = (): string => {
  * @param resp
  */
 export const invalidateAuthCookies = (resp: ServerResponse): void => {
-  getLogger('ResponseUtils').info('Invalidate auth cookies');
+  getLogger('ResponseUtils').debug('Invalidate auth cookies');
   const accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
       value: 'n/a',
@@ -56,7 +56,7 @@ export const invalidateAuthCookies = (resp: ServerResponse): void => {
  * @param tokens
  */
 export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken?: string): void => {
-  getLogger('ResponseUtils').info('Setting auth cookies');
+  getLogger('ResponseUtils').debug('Setting auth cookies');
   const accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
       value: 'n/a',
@@ -122,7 +122,7 @@ export const setCookies = (resp: ServerResponse, cookies: Record<string, {value:
  * @param url
  */
 export const sendRedirect = async (resp: ServerResponse, url: string): Promise<void> => {
-  getLogger('ResponseUtils').info('Sending redirect');
+  getLogger('ResponseUtils').debug('Sending redirect');
   resp.statusCode = 307;
   resp.setHeader('Location', url);
   resp.end();
@@ -136,7 +136,7 @@ export const sendRedirect = async (resp: ServerResponse, url: string): Promise<v
  * @param resp
  */
 export const sendErrorResponse = async (req: IncomingMessage, statusCode: number, message: string, resp: ServerResponse): Promise<void>  => {
-  getLogger('ResponseUtils').child({message, statusCode}).info('Setting error response');
+  getLogger('ResponseUtils').child({message, statusCode}).debug('Setting error response');
   if (req.headers.accept === 'application/json') {
     return await sendJsonResponse(statusCode, {
       error: true,
@@ -157,7 +157,7 @@ export const sendErrorResponse = async (req: IncomingMessage, statusCode: number
  * @param resp
  */
 export const sendJsonResponse = async (statusCode: number, json: any, resp: ServerResponse): Promise<void> => {
-  getLogger('ResponseUtils').info('Setting JSON response');
+  getLogger('ResponseUtils').debug('Setting JSON response');
   await sendResponse(statusCode, 'application/json', JSON.stringify(json), resp);
 }
 
@@ -169,7 +169,7 @@ export const sendJsonResponse = async (statusCode: number, json: any, resp: Serv
  * @param resp
  */
 export const sendResponse = async (statusCode: number, contentType: string, content: any, resp: ServerResponse): Promise<void> => {
-  getLogger('ResponseUtils').info('Setting response');
+  getLogger('ResponseUtils').debug('Setting response');
   resp.statusCode = statusCode;
   resp.setHeader('content-type', contentType);
 
