@@ -131,6 +131,8 @@ export class ProxyHandler implements RequestHandlerConfig {
 
     let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
     let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(context.idTokenJWT);
+
+    context.accessTokenJWT = accessTokenJWT;
     context.idTokenJWT = idTokenJWT;
 
     // if access token is missing or expired attempt to refresh tokens
@@ -156,9 +158,9 @@ export class ProxyHandler implements RequestHandlerConfig {
 
         const accessVerification = await OpenIDUtils.parseTokenAndVerify(accessToken);
         const idVerification = await OpenIDUtils.parseTokenAndVerify(idToken);
-        accessTokenJWT = accessVerification.jwt;
         accessTokenVerificationResult = accessVerification.verificationResult;
 
+        context.accessTokenJWT = accessVerification.jwt;
         context.idTokenJWT = idVerification.jwt;
       }
     }
@@ -177,32 +179,30 @@ export class ProxyHandler implements RequestHandlerConfig {
             expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
           }
         });
+      }
 
+      if (context.mapping.auth.required) {
+        if (context.page) {
+          await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
+        } else {
+          await sendErrorResponse(req, 401, 'Unauthorized', res);
+        }
+
+        return true;
+      } else {
+        delete context.idTokenJWT;
+        delete context.accessTokenJWT;
+      }
+    } else if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
+      if (context.page) {
+        invalidateAuthCookies(res);
         await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
-
-        return true;
-      }
-
-      await sendErrorResponse(req, 401, 'Unauthorized', res);
-
-      return true;
-    }
-
-    if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
-      if (context.api) {
+      } else {
         sendErrorResponse(req, 401, 'Unauthorized', res);
-
-        return true;
       }
 
-      // for page request redirect to the login page
-      invalidateAuthCookies(res);
-      await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
       return true;
     }
-
-    context.accessToken = accessToken;
-    context.accessTokenJWT = accessTokenJWT;
 
     return false;
   }

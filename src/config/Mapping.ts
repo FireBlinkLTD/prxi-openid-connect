@@ -3,21 +3,33 @@ import { HttpMethod } from "prxi";
 export interface Mapping {
   pattern: RegExp;
   methods?: HttpMethod[];
-  claims?: Record<string, string[]>;
+  auth: {
+    required: boolean,
+    claims: Record<string, string[]>;
+  }
 }
 
 /**
   * Prepare mappings from the environment variable value
   * @param value
-  * @param requireClaims
   * @returns
   */
-export const prepareMappings = (value: string, requireClaims: boolean): Mapping[] => {
+export const prepareMappings = (value: string): Mapping[] => {
   const result: Mapping[] = [];
   if (value) {
-    const json = JSON.parse(value);
+    let json;
+    try {
+      json = JSON.parse(value);
+    } catch (e) {
+      throw new Error(`Invalid mapping, unable to parse json for value: ${value}`);
+    }
+
+    if (!Array.isArray(json)) {
+      throw new Error(`Invalid mapping, array expected instead of: ${value}`);
+    }
+
     for (const r of json) {
-      const mapping = prepareMapping(r, requireClaims);
+      const mapping = prepareMapping(r);
       result.push(mapping);
     }
   }
@@ -31,9 +43,10 @@ export const prepareMappings = (value: string, requireClaims: boolean): Mapping[
  * @param requireClaims
  * @returns
  */
-export const prepareMapping = (value: any, requireClaims: boolean): Mapping => {
+export const prepareMapping = (value: any): Mapping => {
+  let rawPattern = value.pattern;
   if (!value.pattern) {
-    throw new Error(`Unable to parse mappings for value: ${value}`);
+    throw new Error(`Unable to parse mappings for value: ${JSON.stringify(value)}`);
   }
 
   // add leading ^ character if missing to the pattern
@@ -46,13 +59,29 @@ export const prepareMapping = (value: any, requireClaims: boolean): Mapping => {
     value.pattern = value.pattern + '$';
   }
 
-  if (requireClaims && !value.claims) {
-    throw new Error(`"claims" configuration is missing for value: ${JSON.stringify(value)}`);
+  if (!value.auth) {
+    value.auth = {
+      required: false,
+      claims: {},
+    }
+  }
+
+  // by default, if not explicitly set authentication is required
+  if (value.auth.required !== false) {
+    value.auth.required = true;
+  }
+
+  // if no claims set, set default object
+  if (!value.auth.claims || JSON.stringify(value.auth.claims) === '{}') {
+    if (value.auth.required) {
+      throw new Error(`Invalid mapping provided for pattern: ${rawPattern}, configuration will cause rejection of all requests. Either provide auth.claims or set auth.required flag to false`);
+    }
+    value.auth.claims = {};
   }
 
   return {
     pattern: new RegExp(value.pattern, 'i'),
     methods: value.methods?.map((m: string) => m.toUpperCase()),
-    claims:  value.claims,
+    auth:  value.auth,
   }
 }

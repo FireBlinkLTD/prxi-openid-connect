@@ -86,14 +86,19 @@ Mappings format:
   {
     # each mapping requires a RegEx pattern to match the path, note: ^ and $ characters can be omitted
     "pattern": "/public/.*",
-    # for non-public mappings (pages and APIs) claims should be provided to grant access to the resource
-    "claims": {
-      # claims can reference one or many named paths (refer to the JWT_AUTH_CLAIM_PATHS environment variable configuration)
-      "name": [
-        # a hit on either one of the claims can grant user access to the resource
-        "role1",
-        "role2"
-      ]
+    # [optional] for non-public mappings (pages and APIs) claims might provide rules to grant access to the resource
+    # if "auth" is not provided, unauthorized access is allowed
+    "auth": {
+      # [optional] when "false", allows either unauthorized or a claims hit to GRANT access, default value "true", meaning only authorized access is allowed
+      "required": false,
+      "claims": {
+        # claims can reference one or many named paths (refer to the JWT_AUTH_CLAIM_PATHS environment variable configuration)
+        "name": [
+          # a hit on EITHER ONE of the claims will GRANT access to the resource
+          "role1",
+          "role2"
+        ]
+      }
     }
   }
 ]

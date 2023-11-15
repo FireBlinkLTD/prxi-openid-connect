@@ -22,12 +22,11 @@ export class RequestUtils {
    * @param accessTokenJWT
    * @param idTokenJWT
    * @param mapping
-   * @param noClaimsAllowedAccess - when true and no claims provided in mapping access will be allowed, in else case denied
    * @returns false if access denied, object with claims when allowed
    */
-  public static isAllowedAccess(logger: Logger, accessTokenJWT: Jwt, idTokenJWT: Jwt, mapping: Mapping, noClaimsAllowedAccess = false): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
+  public static isAllowedAccess(logger: Logger, accessTokenJWT: Jwt, idTokenJWT: Jwt, mapping: Mapping): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
     const { authClaimPaths } = getConfig().jwt;
-    const { claims } = mapping;
+    const { auth } = mapping;
 
     const matchingAuthClaims: Record<string, string[]> = {};
     const allAuthClaims: Record<string, string[]> = {};
@@ -37,28 +36,10 @@ export class RequestUtils {
       idTokenJWT,
     ], authClaimPaths);
 
-    if (!claims) {
-      if (noClaimsAllowedAccess) {
-        logger.child({mapping}).debug('No claims found, access allowed');
-        return {
-          auth: {
-            all: {},
-            matching: {}
-          },
-          proxy: {},
-        };
-      }
-
-      logger.child({mapping}).warn('Unable to find claims in the mapping');
-      return false;
-    }
-
-
-
     let pass = false;
-    for (const key of Object.keys(claims)) {
+    for (const key of Object.keys(auth.claims)) {
       matchingAuthClaims[key] = [];
-      const expectedKeyClaims = claims[key];
+      const expectedKeyClaims = auth.claims[key];
       const jwtKeyClaims = allAuthClaims[key] = jwtClaims[key];
 
       if (jwtKeyClaims?.length) {
@@ -71,7 +52,10 @@ export class RequestUtils {
     }
 
     if (pass) {
-      logger.child({matchingAuthClaims}).info('Found intersection of claims, access allowed');
+      logger.child({matchingAuthClaims}).debug('Found intersection of claims, access allowed');
+    }
+
+    if (pass || !auth.required) {
       return {
         auth: {
           all: allAuthClaims,
@@ -82,9 +66,10 @@ export class RequestUtils {
     }
 
     logger.child({
-      expectedClaims: claims,
+      expectedClaims: auth.claims,
       actualClaims: jwtClaims,
     }).info('No intersection of claims found, access forbidden');
+
     return false;
   }
 

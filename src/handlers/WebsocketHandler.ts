@@ -119,7 +119,7 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
    */
   private async handleAuthorizationFlow(context: Record<string, any>): Promise<boolean> {
     const { accessTokenJWT, idTokenJWT, wsMapping } = context;
-    context.claims = RequestUtils.isAllowedAccess(this.logger, accessTokenJWT, idTokenJWT, wsMapping, true);
+    context.claims = RequestUtils.isAllowedAccess(this.logger, accessTokenJWT, idTokenJWT, wsMapping);
 
     return !context.claims;
   }

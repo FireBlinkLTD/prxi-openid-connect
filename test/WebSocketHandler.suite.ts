@@ -44,18 +44,20 @@ class WebSocketSuite extends BaseSuite {
       getConfig().mappings.pages.push(
         prepareMapping({
           pattern: '/.ws',
-          claims: {
-            realm: [
-              'test_role'
-            ]
+          auth: {
+            claims: {
+              realm: [
+                'test_role'
+              ]
+            }
           }
-        }, false)
+        })
       );
     } else {
       getConfig().mappings.public.push(
         prepareMapping({
           pattern: '/.ws'
-        }, false)
+        })
       );
     }
 
