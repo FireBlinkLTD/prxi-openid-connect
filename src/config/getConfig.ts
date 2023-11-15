@@ -30,8 +30,6 @@ export const getConfig = () => {
         scope: process.env.OPENID_SCOPE || 'openid email profile'
       },
 
-      extractClaims: process.env.EXTRACT_CLAIMS ? process.env.EXTRACT_CLAIMS.split(',').map(c => c.trim()).filter(c => c.length) : [],
-
       headers: {
         meta: process.env.HEADERS_META,
         claims: {
@@ -65,7 +63,8 @@ export const getConfig = () => {
 
       jwt: {
         metaTokenSecret: process.env.JWT_META_TOKEN_SECRET,
-        claimPaths: process.env.JWT_CLAIM_PATHS ? JSON.parse(process.env.JWT_CLAIM_PATHS) : {},
+        authClaimPaths: process.env.JWT_AUTH_CLAIM_PATHS ? JSON.parse(process.env.JWT_AUTH_CLAIM_PATHS) : {},
+        proxyClaims: process.env.JWT_PROXY_CLAIMS ? process.env.JWT_PROXY_CLAIMS.split(',').map(c => c.trim()).filter(c => c.length) : [],
       },
 
       redirect: {

@@ -20,8 +20,6 @@ export interface Config {
     scope: string;
   };
 
-  extractClaims: string[];
-
   headers: {
     meta?: string;
     claims: {
@@ -55,7 +53,8 @@ export interface Config {
 
   jwt: {
     metaTokenSecret?: string;
-    claimPaths: Record<string, string[]>,
+    authClaimPaths: Record<string, string[]>,
+    proxyClaims: string[];
   },
 
   redirect: {

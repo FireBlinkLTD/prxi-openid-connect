@@ -26,11 +26,16 @@ export class RequestUtils {
    * @returns false if access denied, object with claims when allowed
    */
   public static isAllowedAccess(logger: Logger, accessTokenJWT: Jwt, idTokenJWT: Jwt, mapping: Mapping, noClaimsAllowedAccess = false): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
-    const { claimPaths } = getConfig().jwt;
+    const { authClaimPaths } = getConfig().jwt;
     const { claims } = mapping;
 
     const matchingAuthClaims: Record<string, string[]> = {};
     const allAuthClaims: Record<string, string[]> = {};
+
+    const jwtClaims = RequestUtils.extractJWTClaims([
+      accessTokenJWT,
+      idTokenJWT,
+    ], authClaimPaths);
 
     if (!claims) {
       if (noClaimsAllowedAccess) {
@@ -48,10 +53,7 @@ export class RequestUtils {
       return false;
     }
 
-    const jwtClaims = RequestUtils.extractJWTClaims([
-      accessTokenJWT,
-      idTokenJWT,
-    ], claimPaths);
+
 
     let pass = false;
     for (const key of Object.keys(claims)) {

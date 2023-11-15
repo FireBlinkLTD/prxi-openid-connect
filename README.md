@@ -51,8 +51,9 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 
 #### Mappings & JWT Claims Path
 
-- `JWT_CLAIM_PATHS` - [optional] JSON object representing paths (array of strings) to obtain mappings from, e.g.
-
+- `JWT_AUTH_CLAIM_PATHS` - [optional] JSON object representing paths (array of strings) to obtain mappings from, e.g.
+- `JWT_PROXY_CLAIMS` - comma separated list of claims to extract from both Auth/ID token payloads, e.g. "username, email". Value is passed as a JSON with the `HEADERS_CLAIMS_PROXY` header to the upstream service.
+-
 ```yaml
 {
   # Every path should have a name.
@@ -87,7 +88,7 @@ Mappings format:
     "pattern": "/public/.*",
     # for non-public mappings (pages and APIs) claims should be provided to grant access to the resource
     "claims": {
-      # claims can reference one or many named paths (refer to the JWT_CLAIM_PATHS environment variable configuration)
+      # claims can reference one or many named paths (refer to the JWT_AUTH_CLAIM_PATHS environment variable configuration)
       "name": [
         # a hit on either one of the claims can grant user access to the resource
         "role1",
@@ -104,15 +105,11 @@ It is highly recommended to intercept 401 errors on the Web Application side and
 - `REDIRECT_PAGE_REQUEST_ON_404` - [optional] URL to redirect when no mapping found for requested path
 - `REDIRECT_PAGE_REQUEST_ON_403` - [optional] URL to redirect when no access is denied, as none of the JWT claims matching mappings
 
-#### JWT Claims
-
-- `EXTRACT_CLAIMS` - comma separated list of claims to extract from both Auth/ID token payloads, e.g. "username, email". Value is passed as a JSON with the `HEADERS_CLAIMS` header to the upstream service.
-
 #### Headers
 
 - `HEADERS_CLAIMS_AUTH_ALL` - [optional] header name to pass all the auth claims extracted from access/id tokens before calling the upstream service
 - `HEADERS_CLAIMS_AUTH_MATCHING` - [optional] header name to pass just the matching auth claims extracted from access/id tokens before calling the upstream service
-- `HEADERS_CLAIMS_PROXY` - [optional] header name to pass extracted attributes from both access and id tokens (useful to extract such information as username and/or email), definition of claims to pass should be described via `EXTRACT_CLAIMS` environment variable (see above)
+- `HEADERS_CLAIMS_PROXY` - [optional] header name to pass extracted attributes from both access and id tokens (useful to extract such information as username and/or email), definition of claims to pass should be described via `JWT_PROXY_CLAIMS` environment variable (see above)
 - `HEADERS_INJECT_REQUEST` - [optional] JSON object of additional headers to apply to the request before calling the upstream service
 - `HEADERS_INJECT_RESPONSE` - [optional] JSON object of additional headers to apply to the response
 

@@ -139,7 +139,7 @@ export class ProxyHandler implements RequestHandlerConfig {
       accessTokenVerificationResult === JWTVerificationResult.EXPIRED ||
       idTokenVerificationResult === JWTVerificationResult.EXPIRED
     ) {
-      let { verificationResult: refreshTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
+      let { verificationResult: refreshTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(refreshToken);
       if (refreshTokenVerificationResult === JWTVerificationResult.SUCCESS) {
         const tokens = await OpenIDUtils.refreshTokens(refreshToken);
 
@@ -202,7 +202,7 @@ export class ProxyHandler implements RequestHandlerConfig {
     }
 
     context.accessToken = accessToken;
-    context.accessTokenJWT = accessTokenJWT
+    context.accessTokenJWT = accessTokenJWT;
 
     return false;
   }
