@@ -127,7 +127,7 @@ export class ProxyHandler implements RequestHandlerConfig {
   private async handleAuthenticationFlow(cookies: Record<string, string>, req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>, metaPayload: Record<string, any>): Promise<boolean> {
     let accessToken = context.accessToken = cookies[getConfig().cookies.names.accessToken];
     let idToken = context.idToken = cookies[getConfig().cookies.names.idToken];
-    let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.idToken];
+    let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.refreshToken];
 
     let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
     let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(context.idTokenJWT);
@@ -137,12 +137,14 @@ export class ProxyHandler implements RequestHandlerConfig {
 
     // if access token is missing or expired attempt to refresh tokens
     if(
-      accessTokenVerificationResult === JWTVerificationResult.MISSING ||
-      accessTokenVerificationResult === JWTVerificationResult.EXPIRED ||
-      idTokenVerificationResult === JWTVerificationResult.EXPIRED
+      refreshToken &&
+      (
+        accessTokenVerificationResult === JWTVerificationResult.MISSING ||
+        accessTokenVerificationResult === JWTVerificationResult.EXPIRED ||
+        idTokenVerificationResult === JWTVerificationResult.EXPIRED
+      )
     ) {
-      let { verificationResult: refreshTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(refreshToken);
-      if (refreshTokenVerificationResult === JWTVerificationResult.SUCCESS) {
+      try {
         const tokens = await OpenIDUtils.refreshTokens(refreshToken);
 
         let metaToken;
@@ -162,6 +164,14 @@ export class ProxyHandler implements RequestHandlerConfig {
 
         context.accessTokenJWT = accessVerification.jwt;
         context.idTokenJWT = idVerification.jwt;
+      } catch (e) {
+        this.logger.info(`Unable to refresh token`);
+
+        accessToken = context.accessToken = null;
+        idToken = context.idToken = null;
+        refreshToken = context.refreshToken = null;
+
+        accessTokenVerificationResult = JWTVerificationResult.MISSING;
       }
     }
 
