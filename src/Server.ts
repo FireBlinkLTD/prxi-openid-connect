@@ -26,6 +26,19 @@ export const start = async (): Promise<Prxi> => {
 
   logger.child({config}).debug('Configuration');
 
+  if (!config.licenseConsent) {
+    logger.error('###############################################################');
+    logger.error('#                                                             #');
+    logger.error('# In order to use prxi-openid-connect you need to provide a   #');
+    logger.error('# consent that it will be used for personal, non-commercial,  #');
+    logger.error('# under 30 days evaluation period or under a valid commercial #');
+    logger.error('# license obtained from FireBlink.                            #');
+    logger.error('#                                                             #');
+    logger.error('###############################################################');
+
+    throw new Error('Unable to start, license consent is not provided.');
+  }
+
   // Prepare proxy configuration
   prxi = new Prxi({
     logInfo: (message: any, ...params: any[]) => {

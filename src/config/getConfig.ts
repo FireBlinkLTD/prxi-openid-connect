@@ -11,6 +11,8 @@ export const getConfig = () => {
   /* istanbul ignore next */
   if (!config) {
     config = {
+      licenseConsent: process.env.LICENSE_CONSENT === 'true',
+
       port: parseInt(process.env.PORT || '3000'),
       hostname: process.env.HOSTNAME,
       proxyRequestTimeout: process.env.PROXY_REQUEST_TIMEOUT ? parseInt(process.env.PROXY_REQUEST_TIMEOUT) : undefined,
