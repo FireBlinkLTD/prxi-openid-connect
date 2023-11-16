@@ -1,6 +1,8 @@
 import { Mapping } from "./Mapping";
 
 export interface Config {
+  licenseConsent: boolean;
+
   port: number;
   hostname?: string;
   proxyRequestTimeout?: number;

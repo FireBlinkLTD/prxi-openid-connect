@@ -18,6 +18,7 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 ### Environment Variables
 
 #### Generic settings
+- `LICENSE_CONSENT` - A `true` value should be provided when you agree to use prxi-openid-connect under the current license terms. Please refer to the [License](#license) for more details.
 - `PORT` - [optional] port number to listen (default value: `3000`)
 - `HOSTNAME` - [optional] hostname to listen incoming connections on (default value: `localhost`)
 - `HOST_URL` - Public facing Host URL
