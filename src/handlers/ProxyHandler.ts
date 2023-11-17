@@ -1,6 +1,6 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies, setCookies } from "../utils/ResponseUtils";
+import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies } from "../utils/ResponseUtils";
 import { getConfig } from "../config/getConfig";
 import { Mapping } from "../config/Mapping";
 import { JWTVerificationResult, OpenIDUtils } from "../utils/OpenIDUtils";
@@ -170,7 +170,6 @@ export class ProxyHandler implements RequestHandlerConfig {
         accessToken = context.accessToken = null;
         idToken = context.idToken = null;
         refreshToken = context.refreshToken = null;
-        invalidateAuthCookies(res);
 
         accessTokenVerificationResult = JWTVerificationResult.MISSING;
       }
@@ -184,12 +183,14 @@ export class ProxyHandler implements RequestHandlerConfig {
           query = req.url.substring(queryIdx);
         }
 
-        setCookies(res, {
+        invalidateAuthCookies(res, {
           [getConfig().cookies.names.originalPath]: {
             value: path + query,
             expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
           }
         });
+      } else {
+        invalidateAuthCookies(res);
       }
 
       if (context.mapping.auth.required) {

@@ -21,10 +21,11 @@ const getDomain = (): string => {
 /**
  * Invalidate auth cookies
  * @param resp
+ * @param override
  */
-export const invalidateAuthCookies = (resp: ServerResponse): void => {
+export const invalidateAuthCookies = (resp: ServerResponse, override?: Record<string, { value: string, expires?: Date }>): void => {
   getLogger('ResponseUtils').debug('Invalidate auth cookies');
-  const accessCookies: Record<string, { value: string, expires?: Date }> = {
+  let accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
       value: 'n/a',
       expires: new Date(0),
@@ -46,6 +47,13 @@ export const invalidateAuthCookies = (resp: ServerResponse): void => {
       expires: new Date(0),
     },
   };
+
+  if (override) {
+    accessCookies = {
+      ...accessCookies,
+      ...override,
+    }
+  }
 
   setCookies(resp, accessCookies);
 }
@@ -101,7 +109,7 @@ export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken
  * @param resp
  * @param cookies
  */
-export const setCookies = (resp: ServerResponse, cookies: Record<string, {value: string, expires?: Date}>): void => {
+const setCookies = (resp: ServerResponse, cookies: Record<string, {value: string, expires?: Date}>): void => {
   const setCookies = [];
   for (const name of Object.keys(cookies)) {
     setCookies.push(serialize(name, cookies[name].value, {
