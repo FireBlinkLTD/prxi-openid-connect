@@ -170,6 +170,7 @@ export class ProxyHandler implements RequestHandlerConfig {
         accessToken = context.accessToken = null;
         idToken = context.idToken = null;
         refreshToken = context.refreshToken = null;
+        invalidateAuthCookies(res);
 
         accessTokenVerificationResult = JWTVerificationResult.MISSING;
       }
@@ -204,8 +205,9 @@ export class ProxyHandler implements RequestHandlerConfig {
         delete context.accessTokenJWT;
       }
     } else if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
+      invalidateAuthCookies(res);
+
       if (context.page) {
-        invalidateAuthCookies(res);
         await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
       } else {
         sendErrorResponse(req, 401, 'Unauthorized', res);

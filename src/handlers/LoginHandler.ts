@@ -1,12 +1,10 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
 import { getConfig } from "../config/getConfig";
-import { invalidateAuthCookies, sendRedirect } from "../utils/ResponseUtils";
+import { sendRedirect } from "../utils/ResponseUtils";
 import { OpenIDUtils } from "../utils/OpenIDUtils";
 import { Logger } from "pino";
 import getLogger from "../Logger";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { RequestUtils } from "../utils/RequestUtils";
 
 export class LoginHandler implements RequestHandlerConfig {
   private logger: Logger;
