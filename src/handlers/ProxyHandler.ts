@@ -1,4 +1,4 @@
-import { IncomingMessage, ServerResponse } from "http";
+import { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "http";
 import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
 import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies } from "../utils/ResponseUtils";
 import { getConfig } from "../config/getConfig";
@@ -111,6 +111,38 @@ export class ProxyHandler implements RequestHandlerConfig {
 
     await proxyRequest({
       proxyRequestHeaders,
+      onBeforeResponse: (res: ServerResponse, outgoingHeaders: OutgoingHttpHeaders) => {
+        const setCookieName = 'set-cookie';
+        const setCookieHeader = res.getHeader(setCookieName);
+        if (setCookieHeader) {
+          const outgoingCookieHeader = outgoingHeaders[setCookieName];
+          if (!outgoingCookieHeader) {
+            // when no need to merge cookies
+            outgoingHeaders[setCookieName] = setCookieHeader;
+          } else {
+            // merge cookies
+            const cookies: Array<string> = [];
+
+            // merge function
+            const merge = (cookiesToSet: string | number | string[]) => {
+              /* istanbul ignore else */
+              if (Array.isArray(cookiesToSet)) {
+                for(const cookie of cookiesToSet) {
+                  cookies.push(cookie);
+                }
+              } else {
+                cookies.push(cookiesToSet.toString())
+              }
+            }
+
+            // merge cookies
+            merge(outgoingCookieHeader);
+            merge(setCookieHeader);
+
+            outgoingHeaders[setCookieName] = cookies;
+          }
+        }
+      }
     });
   }
 
