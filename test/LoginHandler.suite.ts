@@ -17,4 +17,17 @@ export class LoginHandlerSuite extends BaseSuite {
       strictEqual(json.http.originalUrl, uri);
     });
   }
+
+  @test()
+  async loginWithCustomRedirect() {
+    const uri = '/api/test?q=str';
+    await this.withNewPage(getConfig().hostURL + getConfig().loginPath + `?redirectTo=${encodeURIComponent(uri)}`, async (page) => {
+      await this.loginOnKeycloak(page);
+
+      // make sure we can access the resource
+      await this.navigate(page, getConfig().hostURL + uri);
+      const json = await this.getJsonFromPage(page);
+      strictEqual(json.http.originalUrl, uri);
+    });
+  }
 }
