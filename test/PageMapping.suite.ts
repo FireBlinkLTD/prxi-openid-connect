@@ -34,6 +34,23 @@ class PageMappingSuite extends BaseSuite {
   }
 
   @test()
+  async e404EndpointWithoutRedirect() {
+    await this.reloadPrxiWith({
+      redirect: {
+        pageRequest: {
+          e404: null,
+        }
+      }
+    });
+
+    const uri = '/non-existing-mapping';
+    await this.withNewPage(getConfig().hostURL + uri, async (page) => {
+      const text = await this.getTextFromPage(page);
+      strictEqual(text, '404: Not found')
+    });
+  }
+
+  @test()
   async e403Endpoint() {
     const uri = '/forbidden-pages/test?q=str';
     await this.withNewPage(getConfig().hostURL + uri, async (page) => {

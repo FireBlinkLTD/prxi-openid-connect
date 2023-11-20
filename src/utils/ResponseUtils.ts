@@ -130,7 +130,7 @@ const setCookies = (resp: ServerResponse, cookies: Record<string, {value: string
  * @param url
  */
 export const sendRedirect = async (resp: ServerResponse, url: string): Promise<void> => {
-  getLogger('ResponseUtils').debug('Sending redirect');
+  getLogger('ResponseUtils').child({ url }).debug('Sending redirect');
   resp.statusCode = 307;
   resp.setHeader('Location', url);
   resp.end();

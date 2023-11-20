@@ -18,6 +18,7 @@ export const CallbackHandler: RequestHandlerConfig = {
 
     const cookies = RequestUtils.getCookies(req);
     const originalPath = cookies[getConfig().cookies.names.originalPath] || '/';
+    let redirectTo = `${getConfig().hostURL}${originalPath}`;
 
     // login webhook handler (if any)
     if (getConfig().webhook.login) {
@@ -63,9 +64,25 @@ export const CallbackHandler: RequestHandlerConfig = {
         logger.child({meta: result.meta}).debug('Webhook returned custom user attributes');
         metaToken = OpenIDUtils.prepareMetaToken(result.meta);
       }
+
+      if (result.redirectTo) {
+        logger.child({redirectTo: result}).debug('Webhook returned custom redirect endpoint');
+        redirectTo = result.redirectTo;
+
+        // if relative path
+        /* istanbul ignore else */
+        if (redirectTo.indexOf('http') < 0) {
+          // append slash if missing
+          /* istanbul ignore else */
+          if (redirectTo.indexOf('/') !== 0) {
+            redirectTo = '/' + redirectTo;
+          }
+          redirectTo = `${getConfig().hostURL}${redirectTo}`;
+        }
+      }
     }
 
     setAuthCookies(res, tokens, metaToken);
-    await sendRedirect(res, `${getConfig().hostURL}${originalPath}`);
+    await sendRedirect(res, redirectTo);
   }
 }

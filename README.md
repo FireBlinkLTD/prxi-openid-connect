@@ -136,10 +136,11 @@ Example:
 
 #### Webhooks
 - `WEBHOOK_LOGIN_URL` - [optional]optional URL to make a POST request to, response should be a json object with the following optional fields
-- `refresh: boolean` - [optional] if true, service will use refresh token to fetch new set of tokens, might be useful when webhook endpoint updated user state and new set of tokens should be issued to a user
-- `reject: boolean` - [optional] if true, user won't get the tokens and will see an `Access denied` error
-- `reason: string` - [optional] reason to return instead of `Access denied`
-- `meta: Record<string, any>` - [optional] custom meta attributes associated to a user (make sure to use `JWT_META_TOKEN_SECRET` env variable to set secret and `HEADERS_META` to set the header name to proxy value in)
+ - `refresh: boolean` - [optional] if true, service will use refresh token to fetch new set of tokens, might be useful when webhook endpoint updated user state and new set of tokens should be issued to a user
+ - `reject: boolean` - [optional] if true, user won't get the tokens and will see an `Access denied` error
+ - `reason: string` - [optional] reason to return instead of `Access denied`
+ - `meta: Record<string, any>` - [optional] custom meta attributes associated to a user (make sure to use `JWT_META_TOKEN_SECRET` env variable to set secret and `HEADERS_META` to set the header name to proxy value in)
+ - `redirectTo: string` - [optional] custom URL or relative path to redirect upon flow completion
 
 ## Links
 

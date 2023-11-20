@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
-import { ok, strictEqual } from "assert";
+import { strictEqual } from "assert";
 
 const OpenApiMocker = require('open-api-mocker');
 
@@ -11,6 +11,9 @@ class PublicMappingSuite extends BaseSuite {
 
   private static mockPort = 7777;
   private static rejectURL = `http://localhost:${PublicMappingSuite.mockPort}/reject`;
+  private static loginFailure = `http://localhost:${PublicMappingSuite.mockPort}/login-fail`;
+  private static redirectToURL = `http://localhost:${PublicMappingSuite.mockPort}/redirectTo`;
+  private static refreshToken = `http://localhost:${PublicMappingSuite.mockPort}/refreshToken`;
   private static logout = `http://localhost:${PublicMappingSuite.mockPort}/logout`;
   private static logoutFailure = `http://localhost:${PublicMappingSuite.mockPort}/logout-fail`;
   private static metaURL = `http://localhost:${PublicMappingSuite.mockPort}/meta`;
@@ -57,6 +60,82 @@ class PublicMappingSuite extends BaseSuite {
         json.http.originalUrl,
         new URL(getConfig().redirect.pageRequest.e403).pathname
       );
+    });
+  }
+
+  @test()
+  async rejectLoginWithoutRedirectConfig(): Promise<void> {
+    await this.reloadPrxiWith({
+      webhook: {
+        login: PublicMappingSuite.rejectURL,
+      },
+      redirect: {
+        pageRequest: {
+          e403: null,
+        }
+      }
+    });
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+      const text = await this.getTextFromPage(page);
+      strictEqual(text, '403: Forbidden')
+    });
+  }
+
+  @test()
+  async refreshToken(): Promise<void> {
+    await this.reloadPrxiWith({
+      webhook: {
+        login: PublicMappingSuite.refreshToken,
+      }
+    });
+
+    const uri = '/pages/test';
+    await this.withNewPage(getConfig().hostURL + uri, async (page) => {
+      await this.loginOnKeycloak(page);
+
+      // navigate to the same page again
+      await this.navigate(page, getConfig().hostURL + uri);
+      const text = await this.getTextFromPage(page);
+      const json = JSON.parse(text);
+      strictEqual(json.http.originalUrl, uri);
+    });
+  }
+
+  @test()
+  async testRedirectTo(): Promise<void> {
+    const uri = '/api/test?q=str';
+
+    await this.reloadPrxiWith({
+      webhook: {
+        login: PublicMappingSuite.redirectToURL,
+      }
+    });
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+      const json = await this.getJsonFromPage(page);
+
+      // validate query to be in place
+      strictEqual(json.http.originalUrl, uri);
+      strictEqual(json.request.query.q, 'str');
+    });
+  }
+
+  @test()
+  async testLoginFailure(): Promise<void> {
+    await this.reloadPrxiWith({
+      webhook: {
+        login: PublicMappingSuite.loginFailure,
+      }
+    });
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+
+      const text = await this.getTextFromPage(page);
+      strictEqual(text, '500: Unexpected error occurred')
     });
   }
 
