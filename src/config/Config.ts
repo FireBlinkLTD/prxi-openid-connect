@@ -63,6 +63,8 @@ export interface Config {
     pageRequest: {
       e404?: string;
       e403?: string;
+      e500?: string;
+      e503?: string;
     }
   },
 

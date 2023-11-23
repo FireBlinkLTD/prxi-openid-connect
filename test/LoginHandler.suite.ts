@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
+import { OpenIDUtils } from "../src/utils/OpenIDUtils";
 
 @suite()
 export class LoginHandlerSuite extends BaseSuite {
@@ -29,5 +30,36 @@ export class LoginHandlerSuite extends BaseSuite {
       const json = await this.getJsonFromPage(page);
       strictEqual(json.http.originalUrl, uri);
     });
+  }
+
+  @test()
+  async htmxRedirect() {
+    let headers: Record<string, string> = null;
+    let status: number = null;
+    let url: string = null;
+    await this.withNewPage(
+      getConfig().hostURL + '/pages/test',
+      // after navigate
+      async (page) => {
+        const json = await this.getJsonFromPage(page);
+
+        strictEqual(status, 200);
+        strictEqual(url, getConfig().hostURL + '/pages/test');
+        strictEqual(headers && headers['hx-redirect'], OpenIDUtils.getAuthorizationUrl());
+        strictEqual(json.redirectTo.replace(/&amp;/g, '&'), OpenIDUtils.getAuthorizationUrl());
+      },
+      // before navigate
+      async (page) => {
+        await page.setExtraHTTPHeaders({'Hx-Boosted': 'true'});
+
+        page.once('response', async(response) => {
+          if (!headers) {
+            headers = response.headers();
+            status = response.status();
+            url = response.url();
+          }
+        })
+      }
+    );
   }
 }

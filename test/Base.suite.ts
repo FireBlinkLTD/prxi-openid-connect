@@ -53,9 +53,11 @@ export class BaseSuite {
   /**
    * Open page, navigate and call the handler
    * @param url
+   * @param handler
+   * @param extraHeaders
    * @returns
    */
-  protected async withNewPage(url: string, handler: (page: Page) => Promise<void>): Promise<void> {
+  protected async withNewPage(url: string, handler: (page: Page) => Promise<void>, beforeNavigate?: (page: Page) => Promise<void>): Promise<void> {
     console.log(`[puppeteer] -> Launching browser`);
     const browser = await puppeteer.launch({
       headless: 'new',
@@ -65,6 +67,10 @@ export class BaseSuite {
       console.log(`[puppeteer] -> Opening new page`);
       const page = await browser.newPage();
       try {
+        if (beforeNavigate) {
+          await beforeNavigate(page);
+        }
+
         await this.navigate(page, url);
 
         console.log(`[puppeteer] -> Calling the handler`);

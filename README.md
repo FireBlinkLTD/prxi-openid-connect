@@ -113,8 +113,10 @@ Mappings format:
 It is highly recommended to intercept 401 errors on the Web Application side and reload the page, so `MAPPINGS_PAGES` mapping flow is triggered and user gets redirected to the login page.
 
 #### Redirects
+- `REDIRECT_PAGE_REQUEST_ON_403` - [optional] URL to redirect when access is forbidden
 - `REDIRECT_PAGE_REQUEST_ON_404` - [optional] URL to redirect when no mapping found for requested path
-- `REDIRECT_PAGE_REQUEST_ON_403` - [optional] URL to redirect when no access is denied, as none of the JWT claims matching mappings
+- `REDIRECT_PAGE_REQUEST_ON_500` - [optional] URL to redirect when unexpected error occurred
+- `REDIRECT_PAGE_REQUEST_ON_503` - [optional] URL to redirect when connection to the upstream service cannot be established
 
 #### Headers
 
@@ -165,3 +167,7 @@ More can be found in [LICENSE.md](https://github.com/FireBlinkLTD/prxi-openid-co
 ### Contact Information
 
 To obtain a commercial license [click here](https://fireblink.com/#contact-us) to get in a contact.
+
+## HTMX Support
+
+Every time prxi-openid-connect needs to send a redirect it checks an incoming request to have the `Hx-Boosted` header. If header is found and its value is `true` then prxi-openid-connect will return `200` status code with [Hx-Redirect](https://htmx.org/reference/#response_headers) header instead of making a standard HTTP redirect.

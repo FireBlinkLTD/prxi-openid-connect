@@ -52,7 +52,7 @@ export const CallbackHandler: RequestHandlerConfig = {
       if (result.reject) {
         logger.child({originalPath}).info('Webhook rejected the request');
         if (getConfig().redirect.pageRequest.e403) {
-          sendRedirect(res, getConfig().redirect.pageRequest.e403);
+          sendRedirect(req, res, getConfig().redirect.pageRequest.e403);
         } else {
           sendErrorResponse(req, 403, result.reason || 'Forbidden', res);
         }
@@ -83,6 +83,6 @@ export const CallbackHandler: RequestHandlerConfig = {
     }
 
     setAuthCookies(res, tokens, metaToken);
-    await sendRedirect(res, redirectTo);
+    await sendRedirect(req, res, redirectTo);
   }
 }

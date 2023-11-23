@@ -30,7 +30,7 @@ export class LogoutHandler implements RequestHandlerConfig {
     invalidateAuthCookies(res);
     await this.handleWebhook(req);
 
-    await sendRedirect(res, OpenIDUtils.getEndSessionUrl());
+    await sendRedirect(req, res, OpenIDUtils.getEndSessionUrl());
   }
 
   /**

@@ -129,11 +129,19 @@ const setCookies = (resp: ServerResponse, cookies: Record<string, {value: string
  * @param resp
  * @param url
  */
-export const sendRedirect = async (resp: ServerResponse, url: string): Promise<void> => {
-  getLogger('ResponseUtils').child({ url }).debug('Sending redirect');
-  resp.statusCode = 307;
-  resp.setHeader('Location', url);
-  resp.end();
+export const sendRedirect = async (req: IncomingMessage, resp: ServerResponse, url: string): Promise<void> => {
+  if (req.headers['hx-boosted'] === 'true') {
+    getLogger('ResponseUtils').child({ url }).debug('HTMX boosted request detected, sending hx-redirect header');
+    resp.setHeader('hx-redirect', url);
+    await sendJsonResponse(200, {
+      redirectTo: url
+    }, resp);
+  } else {
+    getLogger('ResponseUtils').child({ url }).debug('Sending redirect');
+    resp.statusCode = 307;
+    resp.setHeader('Location', url);
+    resp.end();
+  }
 }
 
 /**
@@ -176,7 +184,7 @@ export const sendJsonResponse = async (statusCode: number, json: any, resp: Serv
  * @param content
  * @param resp
  */
-export const sendResponse = async (statusCode: number, contentType: string, content: any, resp: ServerResponse): Promise<void> => {
+const sendResponse = async (statusCode: number, contentType: string, content: any, resp: ServerResponse): Promise<void> => {
   getLogger('ResponseUtils').debug('Setting response');
   resp.statusCode = statusCode;
   resp.setHeader('content-type', contentType);

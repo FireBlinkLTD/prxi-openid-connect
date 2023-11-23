@@ -73,6 +73,8 @@ export const getConfig = () => {
         pageRequest: {
           e404: process.env.REDIRECT_PAGE_REQUEST_ON_404,
           e403: process.env.REDIRECT_PAGE_REQUEST_ON_403,
+          e500: process.env.REDIRECT_PAGE_REQUEST_ON_500,
+          e503: process.env.REDIRECT_PAGE_REQUEST_ON_503,
         }
       },
 

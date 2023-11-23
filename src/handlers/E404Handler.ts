@@ -14,7 +14,7 @@ export const E404Handler: RequestHandlerConfig = {
     logger.child({ method, path }).error('Request handler not found');
 
     if (getConfig().redirect.pageRequest.e404) {
-      sendRedirect(res, getConfig().redirect.pageRequest.e404);
+      sendRedirect(req, res, getConfig().redirect.pageRequest.e404);
       return;
     }
 

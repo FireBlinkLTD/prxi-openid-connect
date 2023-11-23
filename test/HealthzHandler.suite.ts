@@ -1,7 +1,7 @@
 import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
-import { deepEqual, ok, strictEqual } from "assert";
+import { strictEqual } from "assert";
 
 @suite()
 class HealthzHandlerSuite extends BaseSuite {

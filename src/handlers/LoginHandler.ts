@@ -39,6 +39,6 @@ export class LoginHandler implements RequestHandlerConfig {
       invalidateAuthCookies(res);
     }
 
-    await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
+    await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
   }
 }

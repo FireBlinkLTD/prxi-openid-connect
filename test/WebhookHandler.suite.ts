@@ -140,6 +140,27 @@ class PublicMappingSuite extends BaseSuite {
   }
 
   @test()
+  async testLoginFailureWithE500Redirect(): Promise<void> {
+    await this.reloadPrxiWith({
+      webhook: {
+        login: PublicMappingSuite.loginFailure,
+      },
+      redirect: {
+        pageRequest: {
+          e500: '/api/test'
+        }
+      }
+    });
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+
+      const url = page.url();
+      strictEqual(url, getConfig().hostURL + '/api/test');
+    });
+  }
+
+  @test()
   async testMeta(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {

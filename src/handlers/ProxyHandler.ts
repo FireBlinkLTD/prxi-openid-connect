@@ -227,7 +227,7 @@ export class ProxyHandler implements RequestHandlerConfig {
 
       if (context.mapping.auth.required) {
         if (context.page) {
-          await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
+          await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
         } else {
           await sendErrorResponse(req, 401, 'Unauthorized', res);
         }
@@ -241,7 +241,7 @@ export class ProxyHandler implements RequestHandlerConfig {
       invalidateAuthCookies(res);
 
       if (context.page) {
-        await sendRedirect(res, OpenIDUtils.getAuthorizationUrl());
+        await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
       } else {
         sendErrorResponse(req, 401, 'Unauthorized', res);
       }
@@ -266,7 +266,7 @@ export class ProxyHandler implements RequestHandlerConfig {
 
     if (!claims) {
       if (context.page && getConfig().redirect.pageRequest.e403) {
-        sendRedirect(res, getConfig().redirect.pageRequest.e403);
+        sendRedirect(req, res, getConfig().redirect.pageRequest.e403);
       } else {
         sendErrorResponse(req, 403, 'Forbidden', res);
       }
