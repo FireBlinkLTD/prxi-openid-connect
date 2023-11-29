@@ -118,7 +118,7 @@ export class ProxyHandler implements RequestHandlerConfig {
           const outgoingCookieHeader = outgoingHeaders[setCookieName];
           if (!outgoingCookieHeader) {
             // when no need to merge cookies
-            outgoingHeaders[setCookieName] = setCookieHeader;
+            outgoingHeaders[setCookieName] = <string | string[]> setCookieHeader;
           } else {
             // merge cookies
             const cookies: Array<string> = [];
@@ -290,7 +290,18 @@ export class ProxyHandler implements RequestHandlerConfig {
     for (const mapping of mappings) {
       const matchMethod = !mapping.methods || mapping.methods.find(m => m === method);
       if (matchMethod && mapping.pattern.exec(path)) {
-        return mapping;
+        let exclude = false;
+        for (const excludeMapping of mapping.exclude) {
+          const excludeMethodMatch = !mapping.methods || mapping.methods.find(m => m === method);
+          exclude = excludeMethodMatch && !!excludeMapping.pattern.exec(path);
+          if (exclude) {
+            continue;
+          }
+        }
+
+        if (!exclude) {
+          return mapping;
+        }
       }
     }
 

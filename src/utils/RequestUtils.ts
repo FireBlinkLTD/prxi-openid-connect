@@ -140,7 +140,11 @@ export class RequestUtils {
           }
 
           if (!fail) {
-            claims.push(...target);
+            if (Array.isArray(target)) {
+              claims.push(...target);
+            } else {
+              claims.push(target);
+            }
           }
         }
       }

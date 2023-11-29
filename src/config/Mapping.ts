@@ -3,6 +3,10 @@ import { HttpMethod } from "prxi";
 export interface Mapping {
   pattern: RegExp;
   methods?: HttpMethod[];
+  exclude: {
+    pattern: RegExp;
+    methods?: HttpMethod[];
+  }[];
   auth: {
     required: boolean,
     claims: Record<string, string[]>;
@@ -37,6 +41,25 @@ export const prepareMappings = (value: string): Mapping[] => {
   return result;
 }
 
+const preparePattern = (value: {pattern?: string}): RegExp => {
+  let { pattern } = value;
+  if (!pattern) {
+    throw new Error(`Unable to parse mappings for value: ${JSON.stringify(value)}`);
+  }
+
+  // add leading ^ character if missing to the pattern
+  if (pattern.indexOf('^') !== 0) {
+    pattern = '^' + pattern;
+  }
+
+  // add trailing $ character if missing to the pattern
+  if (!pattern.endsWith('$')) {
+    pattern = pattern + '$';
+  }
+
+  return new RegExp(pattern, 'i');
+}
+
 /**
  * Prepare single mapping
  * @param value
@@ -44,20 +67,7 @@ export const prepareMappings = (value: string): Mapping[] => {
  * @returns
  */
 export const prepareMapping = (value: any): Mapping => {
-  let rawPattern = value.pattern;
-  if (!value.pattern) {
-    throw new Error(`Unable to parse mappings for value: ${JSON.stringify(value)}`);
-  }
-
-  // add leading ^ character if missing to the pattern
-  if (value.pattern.indexOf('^') !== 0) {
-    value.pattern = '^' + value.pattern;
-  }
-
-  // add trailing $ character if missing to the pattern
-  if (!value.pattern.endsWith('$')) {
-    value.pattern = value.pattern + '$';
-  }
+  const pattern = preparePattern(value);
 
   if (!value.auth) {
     value.auth = {
@@ -74,14 +84,20 @@ export const prepareMapping = (value: any): Mapping => {
   // if no claims set, set default object
   if (!value.auth.claims || JSON.stringify(value.auth.claims) === '{}') {
     if (value.auth.required) {
-      throw new Error(`Invalid mapping provided for pattern: ${rawPattern}, configuration will cause rejection of all requests. Either provide auth.claims or set auth.required flag to false`);
+      throw new Error(`Invalid mapping provided for pattern: ${value.pattern}, configuration will cause rejection of all requests. Either provide auth.claims or set auth.required flag to false`);
     }
     value.auth.claims = {};
   }
 
   return {
-    pattern: new RegExp(value.pattern, 'i'),
+    pattern,
     methods: value.methods?.map((m: string) => m.toUpperCase()),
     auth:  value.auth,
+    exclude: ([] || value.exclude).map((e: any) => {
+      return {
+        pattern: preparePattern(e),
+        methods: e.methods?.map((m: string) => m.toUpperCase()),
+      }
+    })
   }
 }
