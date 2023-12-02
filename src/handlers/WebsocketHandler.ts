@@ -40,7 +40,6 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
       return;
     }
 
-
     breakFlow =  await this.handleAuthorizationFlow(context);
     if (breakFlow) {
       cancelRequest(403, 'Forbidden');
@@ -55,7 +54,7 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
       });
     }
 
-    const proxyRequestHeaders: Record<string, string> = {};
+    const proxyRequestHeaders: Record<string, string | string[] | null> = {};
     if (getConfig().headers.claims.auth.all) {
       proxyRequestHeaders[getConfig().headers.claims.auth.all] = JSON.stringify(context.claims?.auth?.all || {});
     }
@@ -71,6 +70,8 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
     if (getConfig().headers.meta && metaPayload?.p) {
       proxyRequestHeaders[getConfig().headers.meta] = JSON.stringify(metaPayload.p);
     }
+
+    proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(req, cookies);
 
     await proxyRequest({
       proxyRequestHeaders,

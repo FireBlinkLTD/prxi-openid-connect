@@ -44,6 +44,7 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 
 #### Cookies
 - `COOKIES_SECURE` - [optional] whether cookies are secured or not (default value: `true`)
+- `COOKIES_PROXY_TO_UPSTREAM` - [optional] whether prxi-openid-connect specific cookies should be proxies to the upstream service (default value: `true`)
 - `COOKIES_ACCESS_TOKEN` - [optional] Access Token cookie name (default value: `prxi-at`)
 - `COOKIES_ID_TOKEN` - [optional] ID Token cookie name (default value: `prxi-it`)
 - `COOKIES_REFRESH_TOKEN` - [optional] Refresh Token cookie name (default value: `prxi-rt`)

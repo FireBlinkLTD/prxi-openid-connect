@@ -37,6 +37,7 @@ export interface Config {
 
   cookies: {
     secure: boolean;
+    proxyToUpstream: boolean;
     names: {
       accessToken: string;
       idToken: string;
