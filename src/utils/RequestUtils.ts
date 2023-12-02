@@ -1,4 +1,4 @@
-import { parse } from "cookie";
+import { parse, serialize } from "cookie";
 import { IncomingMessage } from "http";
 import { Mapping } from "../config/Mapping";
 import { getConfig } from "../config/getConfig";
@@ -14,6 +14,41 @@ export class RequestUtils {
   public static getCookies(req: IncomingMessage): Record<string, string> {
     /* istanbul ignore else */
     return req.headers.cookie ? parse(req.headers.cookie) : {};
+  }
+
+  /**
+   * Prepare proxy cookies
+   */
+  public static prepareProxyCookies(req: IncomingMessage, cookies: Record<string, string>): string | string[] | null {
+    const config = getConfig();
+
+    if (config.headers.request) {
+      const cookieRequestHeader = Object.entries(config.headers.request).find(e => e[0].toLowerCase() === 'cookie');
+      if (cookieRequestHeader) {
+        return cookieRequestHeader[1];
+      }
+    }
+
+    if (config.cookies.proxyToUpstream) {
+      return req.headers.cookie || null;
+    }
+
+    const copy = {
+      ...cookies,
+    }
+
+    delete copy[config.cookies.names.accessToken];
+    delete copy[config.cookies.names.idToken];
+    delete copy[config.cookies.names.refreshToken];
+    delete copy[config.cookies.names.meta];
+    delete copy[config.cookies.names.originalPath];
+
+    const result: string[] = [];
+    for (const entry of Object.entries(copy)) {
+      result.push(serialize(entry[0], entry[1]));
+    }
+
+    return result.join('; ');
   }
 
   /**

@@ -38,6 +38,84 @@ class ApiMappingSuite extends BaseSuite {
   }
 
   @test()
+  async removePrxiCookies() {
+    const uri = '/api/test?q=str';
+
+    // add configuration for additional headers
+    getConfig().cookies.proxyToUpstream = false;
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+      await page.setCookie(
+        {
+          name: 'test1',
+          value: 'test1value',
+        },
+        {
+          name: 'test2',
+          value: 'test2value',
+        }
+      )
+      await this.navigate(page, getConfig().hostURL + uri);
+      const json = await this.getJsonFromPage(page);
+
+      // validate query to be in place
+      strictEqual(json.http.originalUrl, uri);
+      strictEqual(json.request.query.q, 'str');
+
+      // validate cookies
+      ok(!json.request.cookies[getConfig().cookies.names.accessToken]);
+      ok(!json.request.cookies[getConfig().cookies.names.idToken]);
+      ok(!json.request.cookies[getConfig().cookies.names.refreshToken]);
+      ok(!json.request.cookies[getConfig().cookies.names.meta]);
+      ok(!json.request.cookies[getConfig().cookies.names.originalPath]);
+
+      strictEqual(json.request.cookies.test1, 'test1value');
+      strictEqual(json.request.cookies.test2, 'test2value');
+    });
+  }
+
+  @test()
+  async removeAllCookies() {
+    const uri = '/api/test?q=str';
+
+    // add configuration for additional headers
+    getConfig().cookies.proxyToUpstream = false;
+    getConfig().headers.request = {
+      'Cookie': null,
+    }
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+      await page.setCookie(
+        {
+          name: 'test1',
+          value: 'test1value',
+        },
+        {
+          name: 'test2',
+          value: 'test2value',
+        }
+      )
+      await this.navigate(page, getConfig().hostURL + uri);
+      const json = await this.getJsonFromPage(page);
+
+      // validate query to be in place
+      strictEqual(json.http.originalUrl, uri);
+      strictEqual(json.request.query.q, 'str');
+
+      // validate cookies
+      ok(!json.request.cookies[getConfig().cookies.names.accessToken]);
+      ok(!json.request.cookies[getConfig().cookies.names.idToken]);
+      ok(!json.request.cookies[getConfig().cookies.names.refreshToken]);
+      ok(!json.request.cookies[getConfig().cookies.names.meta]);
+      ok(!json.request.cookies[getConfig().cookies.names.originalPath]);
+      ok(!json.request.cookies.test1);
+      ok(!json.request.cookies.test2);
+    });
+  }
+
+  @test()
   async e401() {
     const uri = '/api/test?q=str';
     const result = await this.fetch(getConfig().hostURL + uri, {

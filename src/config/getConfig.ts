@@ -47,6 +47,7 @@ export const getConfig = () => {
 
       cookies: {
         secure: Boolean(process.env.COOKIES_SECURE || 'true'),
+        proxyToUpstream: Boolean(process.env.COOKIES_PROXY_TO_UPSTREAM || 'true'),
         names: {
           accessToken: process.env.COOKIES_ACCESS_TOKEN || 'prxi-at',
           idToken: process.env.COOKIES_ID_TOKEN || 'prxi-it',

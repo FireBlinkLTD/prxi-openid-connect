@@ -66,14 +66,19 @@ export class ProxyHandler implements RequestHandlerConfig {
    * @inheritdoc
    */
   async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: string, path: string, context: Record<string, any>): Promise<void> {
+    const cookies = RequestUtils.getCookies(req);
+
     // skip JWT validation for public mappings
     if (context.public) {
-      await proxyRequest();
+      await proxyRequest({
+        proxyRequestHeaders: {
+          'cookie': RequestUtils.prepareProxyCookies(req, cookies),
+        }
+      });
 
       return;
     }
 
-    const cookies = RequestUtils.getCookies(req);
     let metaPayload: Record<string, any> = null;
     const metaToken = cookies[getConfig().cookies.names.meta];
     if (metaToken) {
@@ -92,7 +97,7 @@ export class ProxyHandler implements RequestHandlerConfig {
       return;
     }
 
-    const proxyRequestHeaders: Record<string, string> = {};
+    const proxyRequestHeaders: Record<string, string | string[] | null> = {};
     if (getConfig().headers.claims.auth.all) {
       proxyRequestHeaders[getConfig().headers.claims.auth.all] = JSON.stringify(context.claims?.auth?.all || {});
     }
@@ -108,6 +113,8 @@ export class ProxyHandler implements RequestHandlerConfig {
     if (getConfig().headers.meta && metaPayload?.p) {
       proxyRequestHeaders[getConfig().headers.meta] = JSON.stringify(metaPayload.p);
     }
+
+    proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(req, cookies);
 
     await proxyRequest({
       proxyRequestHeaders,
