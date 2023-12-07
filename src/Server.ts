@@ -6,16 +6,23 @@ import { onShutdown } from "node-graceful-shutdown";
 import { getConfig } from "./config/getConfig";
 
 import getLogger from "./Logger";
-import { CallbackHandler } from './handlers/CallbackHandler';
-import { HealthHandler } from './handlers/HealthHandler';
-import { ProxyHandler } from './handlers/ProxyHandler';
-import { errorHandler } from './handlers/ErrorHandler';
+import { CallbackHandler } from './handlers/http/CallbackHandler';
+import { HealthHandler } from './handlers/http/HealthHandler';
+import { ProxyHandler } from './handlers/http/ProxyHandler';
+import { errorHandler } from './handlers/http/ErrorHandler';
+import { http2ErrorHandler } from './handlers/http2/Http2ErrorHandler';
 
 import { OpenIDUtils } from './utils/OpenIDUtils';
-import { E404Handler } from './handlers/E404Handler';
-import { LogoutHandler } from './handlers/LogoutHandler';
-import { LoginHandler } from './handlers/LoginHandler';
+import { E404Handler } from './handlers/http/E404Handler';
+import { LogoutHandler } from './handlers/http/LogoutHandler';
+import { LoginHandler } from './handlers/http/LoginHandler';
 import { WebSocketHandler } from './handlers/WebsocketHandler';
+import { Http2HealthHandler } from './handlers/http2/Http2HealthHandler';
+import { Http2E404Handler } from './handlers/http2/Http2E404Handler';
+import { Http2LoginHandler } from './handlers/http2/Http2LoginHandler';
+import { Http2LogoutHandler } from './handlers/http2/Http2LogoutHandler';
+import { Http2CallbackHandler } from './handlers/http2/Http2CallbackHandler';
+import { Http2ProxyHandler } from './handlers/http2/Http2ProxyHandler';
 
 // Prepare logger
 
@@ -51,6 +58,7 @@ export const start = async (): Promise<Prxi> => {
     port: config.port,
     hostname: config.hostname,
     errorHandler,
+    http2ErrorHandler,
     proxyRequestTimeout: config.proxyRequestTimeout,
     responseHeaders: config.headers.response,
     proxyRequestHeaders: config.headers.request,
@@ -64,6 +72,14 @@ export const start = async (): Promise<Prxi> => {
           CallbackHandler,
           new ProxyHandler(),
           E404Handler,
+        ],
+        http2RequestHandlers: [
+          Http2HealthHandler,
+          new Http2LoginHandler(),
+          new Http2LogoutHandler(),
+          Http2CallbackHandler,
+          new Http2ProxyHandler(),
+          Http2E404Handler,
         ],
         webSocketHandlers: [
           new WebSocketHandler()

@@ -1,8 +1,8 @@
 import { IncomingMessage, ServerResponse } from "http";
 import { ErrorHandler } from "prxi";
-import { sendErrorResponse, sendRedirect } from "../utils/ResponseUtils";
-import getLogger from "../Logger";
-import { getConfig } from "../config/getConfig";
+import { sendErrorResponse, sendRedirect } from "../../utils/ResponseUtils";
+import getLogger from "../../Logger";
+import { getConfig } from "../../config/getConfig";
 
 export const errorHandler: ErrorHandler = async (req: IncomingMessage, res: ServerResponse, err: Error) => {
   console.log(err);

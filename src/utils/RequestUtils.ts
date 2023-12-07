@@ -1,5 +1,5 @@
 import { parse, serialize } from "cookie";
-import { IncomingMessage } from "http";
+import { IncomingHttpHeaders, IncomingMessage } from "http";
 import { Mapping } from "../config/Mapping";
 import { getConfig } from "../config/getConfig";
 import { Logger } from "pino";
@@ -11,15 +11,15 @@ export class RequestUtils {
    * @param req
    * @returns
    */
-  public static getCookies(req: IncomingMessage): Record<string, string> {
+  public static getCookies(headers: IncomingHttpHeaders): Record<string, string> {
     /* istanbul ignore else */
-    return req.headers.cookie ? parse(req.headers.cookie) : {};
+    return headers.cookie ? parse(headers.cookie) : {};
   }
 
   /**
    * Prepare proxy cookies
    */
-  public static prepareProxyCookies(req: IncomingMessage, cookies: Record<string, string>): string | string[] | null {
+  public static prepareProxyCookies(headers: IncomingHttpHeaders, cookies: Record<string, string>): string | string[] | null {
     const config = getConfig();
 
     if (config.headers.request) {
@@ -30,7 +30,7 @@ export class RequestUtils {
     }
 
     if (config.cookies.proxyToUpstream) {
-      return req.headers.cookie || null;
+      return headers.cookie || null;
     }
 
     const copy = {

@@ -1,18 +1,19 @@
-import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { getConfig } from "../config/getConfig";
-import { invalidateAuthCookies, sendRedirect } from "../utils/ResponseUtils";
-import { OpenIDUtils } from "../utils/OpenIDUtils";
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { sendRedirect } from "../../utils/Http2ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
 import { Logger } from "pino";
-import getLogger from "../Logger";
+import getLogger from "../../Logger";
 import { JwtPayload, verify } from "jsonwebtoken";
-import { RequestUtils } from "../utils/RequestUtils";
+import { RequestUtils } from "../../utils/RequestUtils";
+import { IncomingHttpHeaders, ServerHttp2Stream } from "http2";
+import { prepareInvalidatedAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
 
-export class LogoutHandler implements RequestHandlerConfig {
+export class Http2LogoutHandler implements Http2RequestHandlerConfig {
   private logger: Logger;
 
   constructor() {
-    this.logger = getLogger('LogoutHandler')
+    this.logger = getLogger('Http2LogoutHandler')
   }
 
   /**
@@ -25,25 +26,26 @@ export class LogoutHandler implements RequestHandlerConfig {
   /**
    * @inheritdoc
    */
-  public async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest): Promise<void> {
+  public async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest): Promise<void> {
     this.logger.info('Handle logout request');
-    invalidateAuthCookies(res);
-    await this.handleWebhook(req);
+    await this.handleWebhook(headers);
 
-    await sendRedirect(req, res, OpenIDUtils.getEndSessionUrl());
+    sendRedirect(stream, headers, OpenIDUtils.getEndSessionUrl(), {
+      'Set-Cookie': prepareSetCookies(prepareInvalidatedAuthCookies()),
+    });
   }
 
   /**
    * Handle logout webhook request if configured
    * @param req
    */
-  private async handleWebhook(req: IncomingMessage): Promise<void> {
+  private async handleWebhook(headers: IncomingHttpHeaders): Promise<void> {
     if (getConfig().webhook.logout) {
       this.logger.child({
         webhookURL: getConfig().webhook.logout
       }).info('Making a webhook request upon logout');
 
-      const cookies = RequestUtils.getCookies(req);
+      const cookies = RequestUtils.getCookies(headers);
       let metaPayload: Record<string, any> = null;
       const metaToken = cookies[getConfig().cookies.names.meta];
       if (metaToken) {

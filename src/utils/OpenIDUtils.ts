@@ -163,8 +163,8 @@ export class OpenIDUtils {
    * @param req
    * @returns
    */
-  static async exchangeCode(req: IncomingMessage): Promise<TokenSet> {
-    const params = OpenIDUtils.client.callbackParams(req);
+  static async exchangeCode(req: Partial<IncomingMessage>): Promise<TokenSet> {
+    const params = OpenIDUtils.client.callbackParams(<IncomingMessage> req);
     return await OpenIDUtils.client.callback(OpenIDUtils.getRedirectURL(), params);
   }
 

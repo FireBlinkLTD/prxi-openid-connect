@@ -61,6 +61,8 @@ export class BaseSuite {
     console.log(`[puppeteer] -> Launching browser`);
     const browser = await puppeteer.launch({
       headless: 'new',
+      ignoreHTTPSErrors: true,
+      args: [ '--ignore-certificate-errors' ]
     });
 
     try {

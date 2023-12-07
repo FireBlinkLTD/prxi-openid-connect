@@ -1,22 +1,28 @@
-import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { getConfig } from "../config/getConfig";
-import { sendErrorResponse, sendRedirect, setAuthCookies } from "../utils/ResponseUtils";
-import { OpenIDUtils } from "../utils/OpenIDUtils";
-import getLogger from "../Logger";
-import { RequestUtils } from "../utils/RequestUtils";
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
+import getLogger from "../../Logger";
+import { RequestUtils } from "../../utils/RequestUtils";
+import { ServerHttp2Stream } from "http2";
+import { IncomingHttpHeaders, IncomingMessage } from "http";
+import { prepareAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
 
-export const CallbackHandler: RequestHandlerConfig = {
+export const Http2CallbackHandler: Http2RequestHandlerConfig = {
   isMatching: (method: HttpMethod, path: string) => {
     return method === 'GET' && path === getConfig().openid.callbackPath;
   },
 
-  handle: async (req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest) => {
-    const logger = getLogger('CallbackHandler');
-    let tokens = await OpenIDUtils.exchangeCode(req);
+  handle: async (stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string) => {
+    const logger = getLogger('Http2CallbackHandler');
+
+    let tokens = await OpenIDUtils.exchangeCode({
+      url: path,
+      method: method.toString(),
+    });
     let metaToken: string;
 
-    const cookies = RequestUtils.getCookies(req);
+    const cookies = RequestUtils.getCookies(headers);
     const originalPath = cookies[getConfig().cookies.names.originalPath] || '/';
     let redirectTo = `${getConfig().hostURL}${originalPath}`;
 
@@ -52,9 +58,9 @@ export const CallbackHandler: RequestHandlerConfig = {
       if (result.reject) {
         logger.child({originalPath}).info('Webhook rejected the request');
         if (getConfig().redirect.pageRequest.e403) {
-          sendRedirect(req, res, getConfig().redirect.pageRequest.e403);
+          sendRedirect(stream, headers, getConfig().redirect.pageRequest.e403);
         } else {
-          sendErrorResponse(req, 403, result.reason || 'Forbidden', res);
+          sendErrorResponse(stream, headers, 403, result.reason || 'Forbidden');
         }
 
         return;
@@ -82,7 +88,8 @@ export const CallbackHandler: RequestHandlerConfig = {
       }
     }
 
-    setAuthCookies(res, tokens, metaToken);
-    await sendRedirect(req, res, redirectTo);
+    sendRedirect(stream, headers, redirectTo, {
+      'Set-Cookie': prepareSetCookies(prepareAuthCookies(tokens, metaToken)),
+    });
   }
 }

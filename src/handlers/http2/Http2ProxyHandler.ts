@@ -1,19 +1,20 @@
-import { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies } from "../utils/ResponseUtils";
-import { getConfig } from "../config/getConfig";
-import { Mapping } from "../config/Mapping";
-import { JWTVerificationResult, OpenIDUtils } from "../utils/OpenIDUtils";
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig, Response } from "prxi";
+import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
+import { getConfig } from "../../config/getConfig";
+import { Mapping } from "../../config/Mapping";
+import { JWTVerificationResult, OpenIDUtils } from "../../utils/OpenIDUtils";
 import { JwtPayload, verify } from 'jsonwebtoken';
-import getLogger from "../Logger";
+import getLogger from "../../Logger";
 import { Logger } from "pino";
-import { RequestUtils } from "../utils/RequestUtils";
+import { RequestUtils } from "../../utils/RequestUtils";
+import { IncomingHttpHeaders, OutgoingHttpHeaders, ServerHttp2Stream, constants } from "http2";
+import { prepareInvalidatedAuthCookies, prepareSetCookies, prepareAuthCookies } from "../../utils/ResponseUtils";
 
-export class ProxyHandler implements RequestHandlerConfig {
+export class Http2ProxyHandler implements Http2RequestHandlerConfig {
   private logger: Logger;
 
   constructor() {
-    this.logger = getLogger('ProxyHandler')
+    this.logger = getLogger('Http2ProxyHandler')
   }
 
   /**
@@ -65,14 +66,14 @@ export class ProxyHandler implements RequestHandlerConfig {
   /**
    * @inheritdoc
    */
-  async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: string, path: string, context: Record<string, any>): Promise<void> {
-    const cookies = RequestUtils.getCookies(req);
+  async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Record<string, any>) {
+    const cookies = RequestUtils.getCookies(headers);
 
     // skip JWT validation for public mappings
     if (context.public) {
       await proxyRequest({
         proxyRequestHeaders: {
-          'cookie': RequestUtils.prepareProxyCookies(req, cookies),
+          'cookie': RequestUtils.prepareProxyCookies(headers, cookies),
         }
       });
 
@@ -87,12 +88,12 @@ export class ProxyHandler implements RequestHandlerConfig {
       });
     }
 
-    let breakFlow = await this.handleAuthenticationFlow(cookies, req, res, method, path, context, metaPayload?.p);
+    let { reject: breakFlow, cookiesToSet} =  await this.handleAuthenticationFlow(stream, headers, cookies, method, path, context, metaPayload?.p);
     if (breakFlow) {
       return;
     }
 
-    breakFlow = this.handleAuthorizationFlow(req, res, method, path, context);
+    breakFlow = this.handleAuthorizationFlow(stream, headers, method, path, context);
     if (breakFlow) {
       return;
     }
@@ -114,13 +115,15 @@ export class ProxyHandler implements RequestHandlerConfig {
       proxyRequestHeaders[getConfig().headers.meta] = JSON.stringify(metaPayload.p);
     }
 
-    proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(req, cookies);
-
+    proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(headers, cookies);
+    if (Object.keys(cookiesToSet).length) {
+      proxyRequestHeaders['Set-Cookie'] = prepareSetCookies(cookiesToSet);
+    }
     await proxyRequest({
       proxyRequestHeaders,
-      onBeforeResponse: (res: ServerResponse, outgoingHeaders: OutgoingHttpHeaders) => {
+      onBeforeResponse: (_: Response, outgoingHeaders: OutgoingHttpHeaders) => {
         const setCookieName = 'set-cookie';
-        const setCookieHeader = res.getHeader(setCookieName);
+        const setCookieHeader = outgoingHeaders[setCookieName];
         if (setCookieHeader) {
           const outgoingCookieHeader = outgoingHeaders[setCookieName];
           if (!outgoingCookieHeader) {
@@ -155,15 +158,20 @@ export class ProxyHandler implements RequestHandlerConfig {
 
   /**
    * Handle authentication flow
+   * @param stream
+   * @param headers
    * @param cookies
-   * @param req
-   * @param res
    * @param method
    * @param path
    * @param context
+   * @param metaPayload
    * @returns
    */
-  private async handleAuthenticationFlow(cookies: Record<string, string>, req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>, metaPayload: Record<string, any>): Promise<boolean> {
+  private async handleAuthenticationFlow(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, cookies: Record<string, string>, method: string, path: string, context: Record<string, any>, metaPayload: Record<string, any>): Promise<{
+    reject: boolean,
+    cookiesToSet?: Record<string, {value: string, expires?: Date}>,
+  }> {
+    let cookiesToSet = {};
     let accessToken = context.accessToken = cookies[getConfig().cookies.names.accessToken];
     let idToken = context.idToken = cookies[getConfig().cookies.names.idToken];
     let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.refreshToken];
@@ -191,7 +199,7 @@ export class ProxyHandler implements RequestHandlerConfig {
           metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
         }
 
-        setAuthCookies(res, tokens, metaToken);
+        cookiesToSet = prepareAuthCookies(tokens, metaToken);
 
         accessToken = context.accessToken = tokens.access_token;
         idToken = context.idToken = tokens.id_token;
@@ -217,46 +225,56 @@ export class ProxyHandler implements RequestHandlerConfig {
     if (accessTokenVerificationResult === JWTVerificationResult.MISSING) {
       if (context.page) {
         let query = '';
-        let queryIdx = req.url.indexOf('?');
+        let queryIdx = headers[constants.HTTP2_HEADER_PATH].indexOf('?');
         if (queryIdx >= 0) {
-          query = req.url.substring(queryIdx);
+          query = headers[constants.HTTP2_HEADER_PATH].toString().substring(queryIdx);
         }
 
-        invalidateAuthCookies(res, {
+        cookiesToSet = prepareInvalidatedAuthCookies({
           [getConfig().cookies.names.originalPath]: {
             value: path + query,
             expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
           }
-        });
+        })
       } else {
-        invalidateAuthCookies(res);
+        cookiesToSet = prepareInvalidatedAuthCookies();
       }
 
       if (context.mapping.auth.required) {
         if (context.page) {
-          await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
+          sendRedirect(stream, headers, OpenIDUtils.getAuthorizationUrl());
         } else {
-          await sendErrorResponse(req, 401, 'Unauthorized', res);
+          sendErrorResponse(stream, headers, 401, 'Unauthorized');
         }
 
-        return true;
+        return {
+          reject: true
+        };
       } else {
         delete context.idTokenJWT;
         delete context.accessTokenJWT;
       }
     } else if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
-      invalidateAuthCookies(res);
 
       if (context.page) {
-        await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
+        sendRedirect(stream, headers, OpenIDUtils.getAuthorizationUrl(), {
+          'Set-Cookie': prepareSetCookies(prepareInvalidatedAuthCookies()),
+        });
       } else {
-        sendErrorResponse(req, 401, 'Unauthorized', res);
+        sendErrorResponse(stream, headers, 401, 'Unauthorized', {
+          'Set-Cookie': prepareSetCookies(prepareInvalidatedAuthCookies()),
+        });
       }
 
-      return true;
+      return {
+        reject: true
+      };
     }
 
-    return false;
+    return {
+      reject: false,
+      cookiesToSet,
+    };
   }
 
   /**
@@ -268,14 +286,14 @@ export class ProxyHandler implements RequestHandlerConfig {
    * @param context
    * @returns
    */
-  private handleAuthorizationFlow(req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>): boolean {
+  private handleAuthorizationFlow(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, method: string, path: string, context: Record<string, any>): boolean {
     const claims = RequestUtils.isAllowedAccess(this.logger, context.accessTokenJWT, context.idTokenJWT, context.mapping);
 
     if (!claims) {
       if (context.page && getConfig().redirect.pageRequest.e403) {
-        sendRedirect(req, res, getConfig().redirect.pageRequest.e403);
+        sendRedirect(stream, headers, getConfig().redirect.pageRequest.e403);
       } else {
-        sendErrorResponse(req, 403, 'Forbidden', res);
+        sendErrorResponse(stream, headers, 403, 'Forbidden');
       }
 
       return true;

@@ -2,7 +2,7 @@
 
 [OpenID Connect reverse proxy server](https://hub.docker.com/r/fireblink/prxi-openid-connect) that based on a zero-dependency proxy library [prxi](https://www.npmjs.com/package/prxi).
 
-Can be used to provide SSO login (Authentication) functionality to any web application or API service, or both at the same time.
+Can be used to provide SSO login (Authentication/Authorization) functionality to any web application or API service, or both at the same time.
 In most of the cases prxi-openid-connect should be deployed in front of your application to intercept all the requests:
 
 ![diagram](docs/assets/prxi-openid-connect.png)
@@ -161,7 +161,7 @@ This project can be used for free of charge for:
 - Personal Uses
 - Noncommercial Organizations
 
-This project also provides **32** days of evaluation period for **commercial** products and services. After the evaluation period additional license should be obtained or project stopped from being used.
+This project also provides **30** days of evaluation period for **commercial** products and services. After the evaluation period additional license should be obtained or project stopped from being used.
 
 More can be found in [LICENSE.md](https://github.com/FireBlinkLTD/prxi-openid-connect/blob/main/LICENSE.md)
 

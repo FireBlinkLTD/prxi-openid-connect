@@ -29,7 +29,7 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
    * @inheritdoc
    */
   public async handle(req: IncomingMessage, socket: Socket, head: Buffer, proxyRequest: ProxyRequest, cancelRequest: WebSocketProxyCancelRequest, path: string, context: Record<string, any>): Promise<void> {
-    const cookies = RequestUtils.getCookies(req);
+    const cookies = RequestUtils.getCookies(req.headers);
 
     context.accessToken = cookies[getConfig().cookies.names.accessToken];
     context.idToken = cookies[getConfig().cookies.names.idToken];
@@ -71,7 +71,7 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
       proxyRequestHeaders[getConfig().headers.meta] = JSON.stringify(metaPayload.p);
     }
 
-    proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(req, cookies);
+    proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(req.headers, cookies);
 
     await proxyRequest({
       proxyRequestHeaders,
