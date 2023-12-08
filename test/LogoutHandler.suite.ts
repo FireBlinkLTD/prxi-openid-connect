@@ -14,7 +14,7 @@ export class LogoutHandlerSuite extends BaseSuite {
       // make sure we can access the resource
       await this.navigate(page, getConfig().hostURL + uri);
       const json = await this.getJsonFromPage(page);
-      strictEqual(json.http.originalUrl, uri);
+      strictEqual(json.http.url, uri);
 
       // logout and try to access the same resource
       await this.navigate(page, getConfig().hostURL + getConfig().logoutPath);

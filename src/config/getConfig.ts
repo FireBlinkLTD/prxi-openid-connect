@@ -1,7 +1,53 @@
 import { prepareMappings } from "./Mapping";
 import { Config } from "./Config";
+import { readFileSync } from "fs";
 
 let config: Config;
+
+/**
+ * Convert snake_case value to camelCase
+ * @param str
+ * @returns
+ */
+const snakeToCamelCase = (str: string): string => {
+  return str.toLowerCase().replace(/([-_][a-z])/g, (group) => {
+    return group
+      .toUpperCase()
+      .replace('-', '')
+      .replace('_', '')
+  });
+}
+
+/**
+ * Get TLS secure settings
+ * @returns
+ */
+const getSecureSettings = (): Record<string, string | number | Buffer> | undefined => {
+  const secure: Record<string, string | number | Buffer>  = {};
+
+  for (const key in process.env) {
+    // read file
+    if (key.toUpperCase().indexOf('TLS_FILE_') === 0) {
+      const propName = snakeToCamelCase(key.toUpperCase().substring('TLS_FILE_'.length));
+      secure[propName] = readFileSync(process.env[key]);
+      continue;
+    }
+
+    if (key.toUpperCase().indexOf('TLS_STRING_') === 0) {
+      const propName = snakeToCamelCase(key.toUpperCase().substring('TLS_STRING_'.length));
+      secure[propName] = process.env[key];
+      continue;
+    }
+
+    if (key.toUpperCase().indexOf('TLS_NUMBER_') === 0) {
+      const propName = snakeToCamelCase(key.toUpperCase().substring('TLS_FILE_'.length));
+      secure[propName] = +process.env[key];
+      continue;
+    }
+  }
+
+  return Object.keys(secure).length ? secure : undefined;
+}
 
 /**
  * Construct configuration object if not yet available
@@ -12,6 +58,9 @@ export const getConfig = () => {
   if (!config) {
     config = {
       licenseConsent: process.env.LICENSE_CONSENT === 'true',
+
+      mode: (<'HTTP' | 'HTTP2'> process.env.MODE) || 'HTTP',
+      secure: getSecureSettings(),
 
       port: parseInt(process.env.PORT || '3000'),
       hostname: process.env.HOSTNAME,
@@ -84,9 +133,29 @@ export const getConfig = () => {
         logout: process.env.WEBHOOK_LOGOUT_URL,
       }
     }
+
+    if (config.secure && config.upstream.toLowerCase().indexOf('http://') === 0) {
+      throw new Error('When secure settings provided, upstream URL should be "https://*"');
+    }
   }
 
   return config;
+}
+
+/**
+ * Get sanitized configuration
+ * @returns
+ */
+export const getSanitizedConfig = () => {
+  const config = getConfig();
+  return {
+    ...config,
+    openid : {
+      ...config.openid,
+      clientSecret: config.openid.clientSecret ? '<truncated>' : undefined,
+    },
+    secure: config.secure ? '<truncated>' : undefined,
+  }
 }
 
 /**

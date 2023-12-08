@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { Prxi } from 'prxi';
 import { onShutdown } from "node-graceful-shutdown";
 
-import { getConfig } from "./config/getConfig";
+import { getConfig, getSanitizedConfig } from "./config/getConfig";
 
 import getLogger from "./Logger";
 import { CallbackHandler } from './handlers/http/CallbackHandler';
@@ -31,7 +31,7 @@ export const start = async (): Promise<Prxi> => {
   const logger = getLogger('Server');
   const config = getConfig();
 
-  logger.child({config}).debug('Configuration');
+  logger.child({config: getSanitizedConfig()}).debug('Configuration');
 
   if (!config.licenseConsent) {
     logger.error('###############################################################');
@@ -48,6 +48,8 @@ export const start = async (): Promise<Prxi> => {
 
   // Prepare proxy configuration
   prxi = new Prxi({
+    mode: config.mode,
+    secure: config.secure,
     logInfo: (message: any, ...params: any[]) => {
       logger.child({params}).debug(message);
     },
@@ -90,7 +92,7 @@ export const start = async (): Promise<Prxi> => {
 
   await OpenIDUtils.init();
 
-  logger.child({config}).info('Starting listening connections');
+  logger.info('Starting listening connections');
   await prxi.start();
 
   /* istanbul ignore next */

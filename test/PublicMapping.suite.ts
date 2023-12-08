@@ -10,7 +10,6 @@ class PublicMappingSuite extends BaseSuite {
     const uri = '/public/test?q=str';
     const result = await this.fetch(getConfig().hostURL + uri);
     ok(result.ok);
-    strictEqual(result.body.http.originalUrl, uri);
-    strictEqual(result.body.request.query.q, 'str');
+    strictEqual(result.body.http.url, uri);
   }
 }

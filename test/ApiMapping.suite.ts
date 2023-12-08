@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { deepEqual, ok, strictEqual } from "assert";
+import { parse } from "cookie";
 
 @suite()
 class ApiMappingSuite extends BaseSuite {
@@ -19,19 +20,19 @@ class ApiMappingSuite extends BaseSuite {
       const json = await this.getJsonFromPage(page);
 
       // validate query to be in place
-      strictEqual(json.http.originalUrl, uri);
-      strictEqual(json.request.query.q, 'str');
-      deepEqual(JSON.parse(json.request.headers['x-matching-claims']).realm, ["test_role"]);
-      deepEqual(JSON.parse(json.request.headers['x-all-claims']).realm.sort(), ["default-roles-test","offline_access","test_role","uma_authorization"]);
+      strictEqual(json.http.url, uri);
+      deepEqual(JSON.parse(json.headers['x-matching-claims']).realm, ["test_role"]);
+      deepEqual(JSON.parse(json.headers['x-all-claims']).realm.sort(), ["default-roles-test","offline_access","test_role","uma_authorization"]);
 
       // validate cookies
-      ok(json.request.cookies[getConfig().cookies.names.accessToken]);
-      ok(json.request.cookies[getConfig().cookies.names.idToken]);
-      ok(json.request.cookies[getConfig().cookies.names.refreshToken]);
-      ok(!json.request.cookies[getConfig().cookies.names.originalPath]);
+      const cookies = parse(json.headers.cookie);
+      ok(cookies[getConfig().cookies.names.accessToken]);
+      ok(cookies[getConfig().cookies.names.idToken]);
+      ok(cookies[getConfig().cookies.names.refreshToken]);
+      ok(!cookies[getConfig().cookies.names.originalPath]);
 
       // validate proxy claims
-      const proxyClaims = JSON.parse(json.request.headers[getConfig().headers.claims.proxy]);
+      const proxyClaims = JSON.parse(json.headers[getConfig().headers.claims.proxy]);
       strictEqual(proxyClaims.username, 'test');
       ok(proxyClaims.realmRoles.indexOf('test_role') >= 0);
     });
@@ -60,18 +61,18 @@ class ApiMappingSuite extends BaseSuite {
       const json = await this.getJsonFromPage(page);
 
       // validate query to be in place
-      strictEqual(json.http.originalUrl, uri);
-      strictEqual(json.request.query.q, 'str');
+      strictEqual(json.http.url, uri);
 
       // validate cookies
-      ok(!json.request.cookies[getConfig().cookies.names.accessToken]);
-      ok(!json.request.cookies[getConfig().cookies.names.idToken]);
-      ok(!json.request.cookies[getConfig().cookies.names.refreshToken]);
-      ok(!json.request.cookies[getConfig().cookies.names.meta]);
-      ok(!json.request.cookies[getConfig().cookies.names.originalPath]);
+      const cookies = parse(json.headers.cookie);
+      ok(!cookies[getConfig().cookies.names.accessToken]);
+      ok(!cookies[getConfig().cookies.names.idToken]);
+      ok(!cookies[getConfig().cookies.names.refreshToken]);
+      ok(!cookies[getConfig().cookies.names.meta]);
+      ok(!cookies[getConfig().cookies.names.originalPath]);
 
-      strictEqual(json.request.cookies.test1, 'test1value');
-      strictEqual(json.request.cookies.test2, 'test2value');
+      strictEqual(cookies.test1, 'test1value');
+      strictEqual(cookies.test2, 'test2value');
     });
   }
 
@@ -101,17 +102,17 @@ class ApiMappingSuite extends BaseSuite {
       const json = await this.getJsonFromPage(page);
 
       // validate query to be in place
-      strictEqual(json.http.originalUrl, uri);
-      strictEqual(json.request.query.q, 'str');
+      strictEqual(json.http.url, uri);
 
       // validate cookies
-      ok(!json.request.cookies[getConfig().cookies.names.accessToken]);
-      ok(!json.request.cookies[getConfig().cookies.names.idToken]);
-      ok(!json.request.cookies[getConfig().cookies.names.refreshToken]);
-      ok(!json.request.cookies[getConfig().cookies.names.meta]);
-      ok(!json.request.cookies[getConfig().cookies.names.originalPath]);
-      ok(!json.request.cookies.test1);
-      ok(!json.request.cookies.test2);
+      const cookies = json.headers.cookie ? parse(json.headers.cookie) : {};
+      ok(!cookies[getConfig().cookies.names.accessToken]);
+      ok(!cookies[getConfig().cookies.names.idToken]);
+      ok(!cookies[getConfig().cookies.names.refreshToken]);
+      ok(!cookies[getConfig().cookies.names.meta]);
+      ok(!cookies[getConfig().cookies.names.originalPath]);
+      ok(!cookies.test1);
+      ok(!cookies.test2);
     });
   }
 

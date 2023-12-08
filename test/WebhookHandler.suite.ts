@@ -57,7 +57,7 @@ class PublicMappingSuite extends BaseSuite {
       const json = JSON.parse(text);
       // validate query to be in place
       strictEqual(
-        json.http.originalUrl,
+        json.http.url,
         new URL(getConfig().redirect.pageRequest.e403).pathname
       );
     });
@@ -99,7 +99,7 @@ class PublicMappingSuite extends BaseSuite {
       await this.navigate(page, getConfig().hostURL + uri);
       const text = await this.getTextFromPage(page);
       const json = JSON.parse(text);
-      strictEqual(json.http.originalUrl, uri);
+      strictEqual(json.http.url, uri);
     });
   }
 
@@ -118,8 +118,7 @@ class PublicMappingSuite extends BaseSuite {
       const json = await this.getJsonFromPage(page);
 
       // validate query to be in place
-      strictEqual(json.http.originalUrl, uri);
-      strictEqual(json.request.query.q, 'str');
+      strictEqual(json.http.url, uri);
     });
   }
 
@@ -175,7 +174,7 @@ class PublicMappingSuite extends BaseSuite {
       const json = JSON.parse(text);
       // validate query to be in place
       strictEqual(
-        json.request.headers[getConfig().headers.meta],
+        json.headers[getConfig().headers.meta],
         JSON.stringify({
           bool: true,
           str: 'string',

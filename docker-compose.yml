@@ -28,13 +28,3 @@ services:
     ports:
       - 4444:8080
 
-  echo:
-    image: ealen/echo-server:0.7.0
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 128M
-    ports:
-      - 3333:80

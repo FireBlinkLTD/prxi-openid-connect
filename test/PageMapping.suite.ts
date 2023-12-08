@@ -2,6 +2,7 @@ import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { ok, strictEqual } from "assert";
+import { parse } from "cookie";
 
 @suite()
 class PageMappingSuite extends BaseSuite {
@@ -13,14 +14,14 @@ class PageMappingSuite extends BaseSuite {
       const json = await this.getJsonFromPage(page);
 
       // validate query to be in place
-      strictEqual(json.http.originalUrl, uri);
-      strictEqual(json.request.query.q, 'str');
+      strictEqual(json.http.url, uri);
 
       // validate cookies
-      ok(json.request.cookies[getConfig().cookies.names.accessToken]);
-      ok(json.request.cookies[getConfig().cookies.names.idToken]);
-      ok(json.request.cookies[getConfig().cookies.names.refreshToken]);
-      ok(!json.request.cookies[getConfig().cookies.names.originalPath]);
+      const cookies = json.headers.cookie ? parse(json.headers.cookie) : {};
+      ok(cookies[getConfig().cookies.names.accessToken]);
+      ok(cookies[getConfig().cookies.names.idToken]);
+      ok(cookies[getConfig().cookies.names.refreshToken]);
+      ok(!cookies[getConfig().cookies.names.originalPath]);
     });
   }
 
