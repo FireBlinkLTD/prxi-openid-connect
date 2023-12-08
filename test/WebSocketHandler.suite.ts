@@ -4,6 +4,8 @@ import { getConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
 import { start } from "../src/Server";
 import { prepareMapping } from "../src/config/Mapping";
+import {io} from 'socket.io-client';
+import { serialize } from "cookie";
 
 @suite()
 class WebSocketSuite extends BaseSuite {
@@ -38,12 +40,12 @@ class WebSocketSuite extends BaseSuite {
    */
   private async prepare(secure: boolean, additionalHeaders: boolean): Promise<void> {
     // use another host
-    getConfig().upstream = 'http://localhost:4444';
+    //getConfig().upstream = 'http://localhost:4444';
 
     if (secure) {
       getConfig().mappings.pages.push(
         prepareMapping({
-          pattern: '/.ws',
+          pattern: '/socket.io',
           auth: {
             claims: {
               realm: [
@@ -56,7 +58,7 @@ class WebSocketSuite extends BaseSuite {
     } else {
       getConfig().mappings.public.push(
         prepareMapping({
-          pattern: '/.ws'
+          pattern: '/socket.io'
         })
       );
     }
@@ -78,30 +80,45 @@ class WebSocketSuite extends BaseSuite {
   private async test(withAuth: boolean, additionalHeaders: boolean): Promise<void> {
     await this.prepare(withAuth, additionalHeaders);
 
-    const uri = '/.ws';
+    const uri = '/socket.io';
     await this.withNewPage(getConfig().hostURL + uri, async (page) => {
       if (withAuth) {
         await this.loginOnKeycloak(page);
       }
 
-      const msg = 'HELLO';
+      const cookies = await page.cookies();
+      const sio = io(getConfig().hostURL, {
+        transports: ['websocket'],
+        reconnection: false,
+        extraHeaders: {
+          cookie: cookies.map(c => serialize(c.name, c.value)).join('; '),
+        }
+      });
 
-      // send message
-      console.log('-> WS: send message');
-      await page.type(WebSocketSuite.SELECTOR_TEXTAREA, msg);
-      await page.click(WebSocketSuite.SELECTOR_SUBMIT);
+      const send = 'test';
+      let received = null;
+      await new Promise<void>((res, rej) => {
+        const timeout = setTimeout(() => {
+          sio.disconnect();
+          rej(new Error('Unable to connect to WS'));
+        }, 2000);
 
-      // disconnect
-      console.log('-> WS: disconnect');
-      await this.wait(20);
-      await page.click(WebSocketSuite.SELECTOR_DISCONNECT);
+        sio.on('connect_error', (err) => {
+          console.error('connection error', err);
+        });
 
-      console.log('-> WS: get console state');
-      const consoleState = <string>(await page.evaluate(() => document.querySelector('#console').innerHTML));
+        sio.on('connect', () => {
+          sio.on('echo', (msg: string) => {
+            received = msg;
+            sio.disconnect();
+            clearTimeout(timeout);
+            res();
+          });
+          sio.emit('echo', send);
+        });
+      });
 
-      // should appear twice, as [send] and [recv]
-      const messageMatchesCount = (consoleState.match(new RegExp(msg, 'g')) || []).length;
-      strictEqual(messageMatchesCount, 2);
+      strictEqual(received, send);
     });
   }
 }
