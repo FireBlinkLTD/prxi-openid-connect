@@ -4,8 +4,7 @@ import { getConfig } from "../src/config/getConfig";
 import { deepEqual, ok, strictEqual } from "assert";
 import { parse } from "cookie";
 
-@suite()
-class ApiMappingSuite extends BaseSuite {
+class BaseApiMappingSuite extends BaseSuite {
   @test()
   async passIn() {
     const uri = '/api/test?q=str';
@@ -51,10 +50,12 @@ class ApiMappingSuite extends BaseSuite {
         {
           name: 'test1',
           value: 'test1value',
+          url: getConfig().hostURL,
         },
         {
           name: 'test2',
           value: 'test2value',
+          url: getConfig().hostURL,
         }
       )
       await this.navigate(page, getConfig().hostURL + uri);
@@ -92,10 +93,12 @@ class ApiMappingSuite extends BaseSuite {
         {
           name: 'test1',
           value: 'test1value',
+          url: getConfig().hostURL,
         },
         {
           name: 'test2',
           value: 'test2value',
+          url: getConfig().hostURL,
         }
       )
       await this.navigate(page, getConfig().hostURL + uri);
@@ -142,5 +145,33 @@ class ApiMappingSuite extends BaseSuite {
       // validate query to be in place
       strictEqual(text, '403: Forbidden');
     });
+  }
+}
+
+@suite()
+class HttpApiMappingSuite extends BaseApiMappingSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsApiMappingSuite extends BaseApiMappingSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+// @suite()
+// class Http2H2cApiMappingSuite extends BaseApiMappingSuite {
+//   constructor() {
+//     super('HTTP2', false);
+//   }
+// }
+
+@suite()
+class Http2ApiMappingSuite extends BaseApiMappingSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

@@ -6,6 +6,7 @@ import { Logger } from "pino";
 import getLogger from "../../Logger";
 import { ServerHttp2Stream, IncomingHttpHeaders, constants } from "http2";
 import { prepareInvalidatedAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
+import { Context } from "../../types/Context";
 
 const emptyObj = {};
 
@@ -19,20 +20,25 @@ export class Http2LoginHandler implements Http2RequestHandlerConfig {
   /**
    * @inheritdoc
    */
-  public isMatching(method: HttpMethod, path: string): boolean {
-    return method === 'GET' && path === getConfig().loginPath;
+  public isMatching(method: HttpMethod, path: string, context: Context): boolean {
+    const debug = context.debugger.child('Http2LoginHandler -> isMatching', {method, path});
+    const matching = method === 'GET' && path === getConfig().loginPath;
+    debug.event('Matching', {matching});
+
+    return matching;
   }
 
   /**
    * @inheritdoc
    */
-  public async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest): Promise<void> {
+  public async handle (stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
+    const debug = context.debugger.child('Http2LoginHandler -> handle', {method, path});
     this.logger.info('Handle login request');
 
-    const path = headers[constants.HTTP2_HEADER_PATH];
-    const redirectTo = new URL('http://localhost' + path).searchParams.get('redirectTo')
+    const fullPath = headers[constants.HTTP2_HEADER_PATH];
+    const redirectTo = new URL('http://localhost' + fullPath).searchParams.get('redirectTo')
 
-    const cookies = prepareInvalidatedAuthCookies({
+    const cookies = prepareSetCookies(prepareInvalidatedAuthCookies({
       ...(redirectTo
         ? {
           [getConfig().cookies.names.originalPath]: {
@@ -41,10 +47,15 @@ export class Http2LoginHandler implements Http2RequestHandlerConfig {
           }
         }
         : emptyObj),
-    });
+    }));
 
-    sendRedirect(stream, headers, OpenIDUtils.getAuthorizationUrl(), {
-      'Set-Cookie': prepareSetCookies(cookies),
+    const authURL = OpenIDUtils.getAuthorizationUrl();
+    debug.event('Redirecting', {
+      redirectTo: authURL,
+      cookiesToSet: cookies,
+    })
+    sendRedirect(stream, headers, authURL, {
+      'Set-Cookie': cookies,
     });
   }
 }

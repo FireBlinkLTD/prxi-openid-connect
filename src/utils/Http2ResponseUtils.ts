@@ -31,6 +31,7 @@ export const sendRedirect = (stream: ServerHttp2Stream, headers: IncomingHttpHea
   stream.respond({
     [constants.HTTP2_HEADER_STATUS]: 307,
     'Location': url,
+    ...(outgoingHeaders ? outgoingHeaders : emptyObj)
   })
   stream.end();
 }

@@ -59,7 +59,12 @@ export class RequestUtils {
    * @param mapping
    * @returns false if access denied, object with claims when allowed
    */
-  public static isAllowedAccess(logger: Logger, accessTokenJWT: Jwt, idTokenJWT: Jwt, mapping: Mapping): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
+  public static isAllowedAccess(
+    logger: Logger,
+    accessTokenJWT: Jwt,
+    idTokenJWT: Jwt,
+    mapping: Mapping
+  ): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
     const { authClaimPaths } = getConfig().jwt;
     const { auth } = mapping;
 

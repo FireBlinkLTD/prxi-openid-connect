@@ -24,18 +24,17 @@ export const getDomain = (): string => {
  * @param override
  */
 export const invalidateAuthCookies = (resp: ServerResponse, override?: Record<string, { value: string, expires?: Date }>): void => {
-  getLogger('ResponseUtils').debug('Invalidate auth cookies');
   const accessCookies = prepareInvalidatedAuthCookies(override);
   setCookies(resp, accessCookies);
 }
 
 /**
- * Invalidate auth cookies
+ * Prepare invalidate auth cookies
  * @param resp
  * @param override
  */
 export const prepareInvalidatedAuthCookies = (override?: Record<string, { value: string, expires?: Date }>): Record<string, { value: string, expires?: Date }> => {
-  getLogger('Http2ResponseUtils').debug('Invalidate auth cookies');
+  getLogger('ResponseUtils').debug('Prepare invalidate auth cookies');
 
   let accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
@@ -76,7 +75,6 @@ export const prepareInvalidatedAuthCookies = (override?: Record<string, { value:
  * @param tokens
  */
 export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken?: string): void => {
-  getLogger('ResponseUtils').debug('Setting auth cookies');
   const accessCookies = prepareAuthCookies(tokens, metaToken);
   setCookies(resp, accessCookies);
 }
@@ -87,7 +85,7 @@ export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken
  * @param tokens
  */
 export const prepareAuthCookies = (tokens: TokenSet, metaToken?: string): Record<string, { value: string, expires?: Date }> => {
-  getLogger('ResponseUtils').debug('Setting auth cookies');
+  getLogger('ResponseUtils').debug('Preparing auth cookies');
   const accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
       value: 'n/a',

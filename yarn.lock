@@ -2901,10 +2901,10 @@ proxy-from-env@^1.1.0:
   resolved "https://registry.yarnpkg.com/proxy-from-env/-/proxy-from-env-1.1.0.tgz#e102f16ca355424865755d2c9e8ea4f24d58c3e2"
   integrity sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==
 
-prxi@^1.0.0:
-  version "1.0.0"
-  resolved "https://registry.yarnpkg.com/prxi/-/prxi-1.0.0.tgz#3859154b874eae21de7d0cbaaf80e06f1638e2fd"
-  integrity sha512-VVOeRVsF7AQ2sB6VWRVCPlUfCPlA41sNBlKGl38rImOv3A28fvG7XWALTBmKLjyuZJ7gBRt1Iu1ahAZlafZXqA==
+prxi@^1.1.2:
+  version "1.1.2"
+  resolved "https://registry.yarnpkg.com/prxi/-/prxi-1.1.2.tgz#e9e6cb2cd28bd8184c8d9b01f44cda6b9a265ba0"
+  integrity sha512-+0eqgj0aLnsyVgdOnsvhCdt2efvX177iZxXKq1NYf3cgn/snnfB97N2HF2xJkLUnfj64qZWSzg+LWwvuvDEiEw==
 
 ps-tree@^1.2.0:
   version "1.2.0"

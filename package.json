@@ -30,7 +30,7 @@
     "keygen": "openssl req -x509 -newkey rsa:2048 -nodes -sha256 -subj '/CN=localhost' -keyout test/key.pem -out test/cert.pem",
     "test:keycloak": "bash bin/1-test-keycloak.sh",
     "test:clean": "rimraf ./coverage && rm puppeteer-error-*",
-    "test": "nyc --reporter=html --reporter=text mocha",
+    "test": "export NODE_EXTRA_CA_CERTS=test/cert.pem && nyc --reporter=html --reporter=text mocha",
     "test:coverage": "nyc report --reporter=text-lcov > ./coverage/coverage.lcov"
   },
   "repository": {
@@ -46,7 +46,7 @@
     "node-graceful-shutdown": "^1.1.5",
     "openid-client": "^5.4.3",
     "pino": "^8.14.1",
-    "prxi": "^1.0.0"
+    "prxi": "^1.1.2"
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",

@@ -8,6 +8,7 @@ import { JwtPayload, verify } from 'jsonwebtoken';
 import getLogger from "../../Logger";
 import { Logger } from "pino";
 import { RequestUtils } from "../../utils/RequestUtils";
+import { Context } from "../../types/Context";
 
 export class ProxyHandler implements HttpRequestHandlerConfig {
   private logger: Logger;
@@ -19,7 +20,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
   /**
    * @inheritdoc
    */
-  public isMatching(method: HttpMethod, path: string,  context: Record<string, any>): boolean {
+  public isMatching(method: HttpMethod, path: string, context: Context): boolean {
     context.mapping = this.findMatchingMapping(
       getConfig().mappings.public,
       method,
@@ -65,7 +66,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
   /**
    * @inheritdoc
    */
-  async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: string, path: string, context: Record<string, any>): Promise<void> {
+  async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: string, path: string, context: Context): Promise<void> {
     const cookies = RequestUtils.getCookies(req.headers);
 
     // skip JWT validation for public mappings
@@ -89,11 +90,13 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
 
     let breakFlow = await this.handleAuthenticationFlow(cookies, req, res, method, path, context, metaPayload?.p);
     if (breakFlow) {
+      this.logger.debug('Breaking upon authentication');
       return;
     }
 
     breakFlow = this.handleAuthorizationFlow(req, res, method, path, context);
     if (breakFlow) {
+      this.logger.debug('Breaking upon authorization');
       return;
     }
 
@@ -116,6 +119,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
 
     proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(req.headers, cookies);
 
+    this.logger.debug('Proceeding to proxy request');
     await proxyRequest({
       proxyRequestHeaders,
       onBeforeResponse: (res: ServerResponse, outgoingHeaders: OutgoingHttpHeaders) => {
@@ -164,6 +168,8 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
    * @returns
    */
   private async handleAuthenticationFlow(cookies: Record<string, string>, req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>, metaPayload: Record<string, any>): Promise<boolean> {
+    this.logger.child({cookies: Object.keys(cookies), path, method, context}).debug('Handling authentication flow');
+
     let accessToken = context.accessToken = cookies[getConfig().cookies.names.accessToken];
     let idToken = context.idToken = cookies[getConfig().cookies.names.idToken];
     let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.refreshToken];
@@ -239,8 +245,10 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
           await sendErrorResponse(req, 401, 'Unauthorized', res);
         }
 
+        this.logger.debug('Access token is missing but mapping requires auth');
         return true;
       } else {
+        this.logger.debug('Access token is missing and auth isn\'t required');
         delete context.idTokenJWT;
         delete context.accessTokenJWT;
       }
@@ -253,9 +261,11 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
         sendErrorResponse(req, 401, 'Unauthorized', res);
       }
 
+      this.logger.debug('Access token is invalid but mapping requires auth');
       return true;
     }
 
+    this.logger.debug('Authentication flow passes');
     return false;
   }
 

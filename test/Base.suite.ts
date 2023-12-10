@@ -5,14 +5,21 @@ import { getConfig, updateConfig } from "../src/config/getConfig";
 import puppeteer, { Page } from 'puppeteer';
 import { start } from '../src/Server';
 import { Prxi } from 'prxi';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { context } from '@testdeck/mocha';
 
 export class BaseSuite {
   private originalConfig: Config;
   protected prxi: Prxi;
 
+  constructor(protected mode: 'HTTP' | 'HTTP2' = 'HTTP', protected secure = false) {}
+
   public async before() {
+    console.log(`========= [${this.mode}]${this.secure ? ' [secure]' : ''} ${this[context].test.title} =========`);
     // get original configuration
     this.originalConfig = structuredClone(getConfig());
+    this.fixConfig();
     this.prxi = await start();
   }
 
@@ -20,6 +27,47 @@ export class BaseSuite {
     // set original configuration back
     updateConfig(this.originalConfig);
     await this.prxi?.stop();
+    console.log(`========= [${this.mode}]${this.secure ? ' [secure]' : ''} ${this[context].test.title} =========`);
+  }
+
+  /**
+   * Modify configuration based on settings set in the constructor
+   */
+  protected fixConfig() {
+    getConfig().mode = this.mode;
+
+    if (this.secure) {
+      getConfig().openid.clientId = getConfig().openid.clientId + '_secure';
+
+      // update cookie settings
+      getConfig().cookies.secure = true;
+
+      // set TLS settings
+      getConfig().secure = {
+        key: readFileSync(resolve(__dirname, 'key.pem')),
+        cert: readFileSync(resolve(__dirname, 'cert.pem')),
+      }
+
+      // update urls
+      getConfig().upstream = `https://localhost:${this.mode === 'HTTP' ? 7002 : 7004}`;
+      getConfig().hostURL = getConfig().hostURL.replace(/http:/g, 'https:');
+
+      if (getConfig().redirect.pageRequest.e403) {
+        getConfig().redirect.pageRequest.e403 = getConfig().redirect.pageRequest.e403.replace(/http:/g, 'https:');
+      }
+      if (getConfig().redirect.pageRequest.e404) {
+        getConfig().redirect.pageRequest.e404 = getConfig().redirect.pageRequest.e404.replace(/http:/g, 'https:');
+      }
+      if (getConfig().redirect.pageRequest.e500) {
+        getConfig().redirect.pageRequest.e500 = getConfig().redirect.pageRequest.e500.replace(/http:/g, 'https:');
+      }
+      if (getConfig().redirect.pageRequest.e503) {
+        getConfig().redirect.pageRequest.e503 = getConfig().redirect.pageRequest.e503.replace(/http:/g, 'https:');
+      }
+    } else {
+      getConfig().upstream = `http://localhost:${this.mode === 'HTTP' ? 7001 : 7003}`;
+      getConfig().secure = undefined;
+    }
   }
 
   protected async reloadPrxiWith(config: Partial<Config>): Promise<void> {

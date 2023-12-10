@@ -23,6 +23,10 @@ import { Http2LoginHandler } from './handlers/http2/Http2LoginHandler';
 import { Http2LogoutHandler } from './handlers/http2/Http2LogoutHandler';
 import { Http2CallbackHandler } from './handlers/http2/Http2CallbackHandler';
 import { Http2ProxyHandler } from './handlers/http2/Http2ProxyHandler';
+import { Debugger, DisabledDebugger } from './utils/Debugger';
+import { randomUUID } from 'crypto';
+import { IncomingHttpHeaders } from 'http';
+import { constants } from 'http2';
 
 // Prepare logger
 
@@ -46,6 +50,24 @@ export const start = async (): Promise<Prxi> => {
     throw new Error('Unable to start, license consent is not provided.');
   }
 
+  const isDebug = config.logLevel.toLowerCase() === 'debug';
+
+  // Before request hook
+  const beforeRequest = (headers: IncomingHttpHeaders, context: Record<string, any>) => {
+    const requestId = (headers['x-correlation-id'] || headers['x-trace-id'] || headers['x-request-id'] || randomUUID()).toString();
+    context.requestId = requestId;
+    context.debugger = isDebug ? new Debugger('Root', requestId) : DisabledDebugger;
+  }
+
+  // After request hook
+  const afterRequest = (method: string, path: string, context: Record<string, any>) => {
+    if (context.debugger.enabled) {
+      console.log(`vvvvvvvvvvvvvvvvvvvvvvvvvvvv ${method}: ${path} vvvvvvvvvvvvvvvvvvvvvvvvvvvv`);
+      console.log(context.debugger.toString());
+      console.log(`^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ${method}: ${path} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^`);
+    }
+  }
+
   // Prepare proxy configuration
   prxi = new Prxi({
     mode: config.mode,
@@ -64,6 +86,26 @@ export const start = async (): Promise<Prxi> => {
     proxyRequestTimeout: config.proxyRequestTimeout,
     responseHeaders: config.headers.response,
     proxyRequestHeaders: config.headers.request,
+    on: {
+      beforeHTTPRequest: (req, res, ctx) => {
+        beforeRequest(req.headers, ctx);
+      },
+
+      afterHTTPRequest: (req, res, ctx) => {
+        afterRequest(req.method, req.url, ctx);
+      },
+
+      beforeHTTP2Request: (stream, headers, ctx) => {
+        beforeRequest(headers, ctx);
+      },
+
+      afterHTTP2Request: (stream, headers, ctx) => {
+        afterRequest(
+          headers[constants.HTTP2_HEADER_METHOD].toString(),
+          headers[constants.HTTP2_HEADER_PATH].toString(),
+          ctx);
+      },
+    },
     upstream: [
       {
         target: config.upstream,

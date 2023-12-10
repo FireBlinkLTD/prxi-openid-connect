@@ -134,8 +134,14 @@ export const getConfig = () => {
       }
     }
 
-    if (config.secure && config.upstream.toLowerCase().indexOf('http://') === 0) {
-      throw new Error('When secure settings provided, upstream URL should be "https://*"');
+    if (config.secure) {
+      if (config.upstream.toLowerCase().indexOf('http://') === 0) {
+        throw new Error('When secure settings provided, upstream URL should be "https://*"');
+      }
+
+      if (!config.cookies.secure) {
+        throw new Error('When secure settings provided, COOKIES_SECURE should be "true"');
+      }
     }
   }
 
