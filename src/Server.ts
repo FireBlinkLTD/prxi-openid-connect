@@ -31,8 +31,14 @@ import { Console } from './utils/Console';
 
 // Prepare logger
 
-let prxi: Prxi;
-export const start = async (): Promise<Prxi> => {
+
+
+/**
+ * Start server
+ * @param testMode
+ * @returns
+ */
+export const start = async (testMode = false): Promise<Prxi> => {
   const logger = getLogger('Server');
   const config = getConfig();
 
@@ -70,7 +76,7 @@ export const start = async (): Promise<Prxi> => {
   }
 
   // Prepare proxy configuration
-  prxi = new Prxi({
+  const prxi = new Prxi({
     mode: config.mode,
     secure: config.secure,
     logInfo: (message: any, ...params: any[]) => {
@@ -148,10 +154,12 @@ export const start = async (): Promise<Prxi> => {
   await prxi.start();
 
   /* istanbul ignore next */
-  onShutdown(async () => {
-    logger.info('Gracefully shutting down the server');
-    await prxi.stop();
-  });
+  if (!testMode) {
+    onShutdown(async () => {
+      logger.info('Gracefully shutting down the server');
+      await prxi.stop();
+    });
+  }
 
   return prxi;
 }

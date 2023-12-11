@@ -64,8 +64,8 @@ class WebSocketSuite extends BaseSuite {
       getConfig().headers.claims.auth.matching = 'X-MATCHING-CLAIMS';
     }
 
-    await this.prxi.stop();
-    this.prxi = await start();
+    await this.prxi.stop(true);
+    this.prxi = await start(true);
   }
 
   /**
@@ -99,11 +99,11 @@ class WebSocketSuite extends BaseSuite {
           rej(new Error('Unable to connect to WS'));
         }, 2000);
 
-        sio.on('connect_error', (err) => {
+        sio.once('connect_error', (err) => {
           console.error('connection error', err);
         });
 
-        sio.on('connect', () => {
+        sio.once('connect', () => {
           sio.on('echo', (msg: string) => {
             received = msg;
             sio.disconnect();
@@ -113,6 +113,7 @@ class WebSocketSuite extends BaseSuite {
           sio.emit('echo', send);
         });
       });
+      sio.disconnect();
 
       strictEqual(received, send);
     });

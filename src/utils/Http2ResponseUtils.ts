@@ -82,7 +82,7 @@ export const sendJsonResponse = async (_: Debugger, statusCode: number, json: an
  * @param resp
  */
 const sendResponse = async (_: Debugger, statusCode: number, contentType: string, content: any, stream: ServerHttp2Stream, headers?: Record<string, string | string[]>): Promise<void> => {
-  _.debug('Setting response', { content, statusCode, headers });
+  _.debug('Setting response', { content, statusCode, headers, contentType });
   stream.respond({
     [constants.HTTP2_HEADER_STATUS]: statusCode,
     'content-type': contentType,

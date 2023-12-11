@@ -21,13 +21,18 @@ export class BaseSuite {
     // get original configuration
     this.originalConfig = structuredClone(getConfig());
     this.fixConfig();
-    this.prxi = await start();
+    this.prxi = await start(true);
   }
 
   public async after() {
     // set original configuration back
     updateConfig(this.originalConfig);
-    await this.prxi?.stop();
+    try {
+      await this.prxi?.stop();
+      this.prxi = null;
+    } catch (e) {
+      console.error(e);
+    }
     Console.printDoubleBox(`[TEST] [${this.mode}]${this.secure ? ' [secure]' : ''} ${this[context].test.title}`);
   }
 
@@ -90,12 +95,12 @@ export class BaseSuite {
   }
 
   protected async reloadPrxiWith(config: Partial<Config>): Promise<void> {
-    await this.prxi.stop();
+    await this.prxi.stop(true);
     updateConfig({
-      ...this.originalConfig,
+      ...getConfig(),
       ...config,
     });
-    this.prxi = await start();
+    this.prxi = await start(true);
   }
 
   /**
@@ -149,7 +154,11 @@ export class BaseSuite {
           const path = `puppeteer-error-${Date.now()}.png`;
           console.log(`[puppeteer] Error occurred while on page: ${page.url()}; Screenshot name: ${path}`);
           console.log('[puppeteer]', e);
-          await page.screenshot({ path });
+          try {
+            await page.screenshot({ path });
+          } catch (e) {
+            console.log('[puppeteer] Unable to create screenshot', e);
+          }
         } finally {
           throw e;
         }
