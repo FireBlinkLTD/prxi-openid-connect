@@ -12,14 +12,12 @@ export class Debugger {
   private events: DebugEvent[];
   private logger: Logger;
 
-  // blank debug function
-  private static blankDebugFn = (msg: string, state?: Record<string, any>) => {};
-
   constructor(public name: string, public requestId: string, public enabled = true) {
     if (enabled) {
       this.events = [];
-      this.logger = getLogger(`[DEBUGGER] [${name}]`).child({ requestId });
     }
+
+    this.logger = getLogger(name).child({ requestId });
   }
 
   /**
@@ -29,40 +27,77 @@ export class Debugger {
    * @returns
    */
   public child(name: string, state?: Record<string, any>): Debugger {
-    if (!this.enabled) {
-      return DisabledDebugger;
+    const child = new Debugger(name, this.requestId, this.enabled);
+
+    if (this.enabled) {
+      this.events.push({
+        date: new Date(),
+        msg: name,
+        child,
+        state,
+      });
     }
 
-    const child = new Debugger(name, this.requestId, this.enabled);
-    this.events.push({
-      date: new Date(),
-      msg: name,
-      child,
-      state,
-    });
-
     return child;
+  }
+
+  /**
+   * Log message
+   * @param state
+   */
+  private getLogger(state?: Record<string, any>): Logger {
+    let logger = this.logger;
+    if (state) {
+      logger = this.logger.child({ _: state });
+    }
+    return logger;
+  }
+
+  /**
+   * Record info event
+   * @param msg
+   * @param state
+   */
+  public info(msg: string, state?: Record<string, any>): void {
+    this.getLogger(state).info(msg);
+    this.pushEvent(msg, state);
+  }
+
+  /**
+   * Record info event
+   * @param msg
+   * @param state
+   */
+  public error(msg: string, error?: Error, state?: Record<string, any>): void {
+    this.getLogger({ error }).info(msg);
+    this.pushEvent(msg, { error, ...state });
+  }
+
+  /**
+   * Push event
+   * @param msg
+   * @param state
+   */
+  private pushEvent(msg: string, state?: Record<string, any>): void {
+    if (this.enabled) {
+      this.events.push({
+        msg,
+        state: state ? JSON.parse(JSON.stringify(state)) : null,
+        date: new Date(),
+      });
+    }
   }
 
   /**
    * Record a debug event
    * @returns
    */
-  public get event(): (msg: string, state?: Record<string, any>) => void {
-    if (!this.enabled) {
-      return Debugger.blankDebugFn;
+  public debug(msg: string, state?: Record<string, any>): void {
+    if (this.enabled) {
+      this.getLogger(state).debug(msg);
     }
 
-    // return a function to trace event
-    return (msg: string, state?: Record<string, any>) => {
-      this.events.push({
-        msg,
-        state: state ? JSON.parse(JSON.stringify(state)) : null,
-        date: new Date(),
-      });
-
-      this.logger.child({...(state ?? {})}).debug(msg);
-    }
+    this.pushEvent(msg, state);
   }
 
   /**
@@ -83,13 +118,13 @@ export class Debugger {
     }
 
     for (const event of this.events) {
-      result += `${prefix}[${event.date.toISOString()}] ${event.msg}\n`;
+      result += `${prefix}\x1b[32m[${event.date.toISOString()}]\x1b[0m ${event.msg}\n`;
 
       if (event.state) {
-        result += `${prefix}  State:\n`;
+        result += `${prefix}  \x1b[33mState:\x1b[0m\n`;
         const lines = JSON.stringify(event.state, null, 2).split('\n');
         for (const line of lines) {
-          result += `${prefix}  ${line}\n`;
+          result += `\x1b[2m${prefix}  ${line}\x1b[0m\n`;
         }
       }
 
@@ -104,5 +139,3 @@ export class Debugger {
     return "<Debugger>";
   }
 }
-
-export const DisabledDebugger = new Debugger('', '', false);

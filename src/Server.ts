@@ -23,10 +23,11 @@ import { Http2LoginHandler } from './handlers/http2/Http2LoginHandler';
 import { Http2LogoutHandler } from './handlers/http2/Http2LogoutHandler';
 import { Http2CallbackHandler } from './handlers/http2/Http2CallbackHandler';
 import { Http2ProxyHandler } from './handlers/http2/Http2ProxyHandler';
-import { Debugger, DisabledDebugger } from './utils/Debugger';
+import { Debugger } from './utils/Debugger';
 import { randomUUID } from 'crypto';
 import { IncomingHttpHeaders } from 'http';
 import { constants } from 'http2';
+import { Console } from './utils/Console';
 
 // Prepare logger
 
@@ -56,15 +57,15 @@ export const start = async (): Promise<Prxi> => {
   const beforeRequest = (headers: IncomingHttpHeaders, context: Record<string, any>) => {
     const requestId = (headers['x-correlation-id'] || headers['x-trace-id'] || headers['x-request-id'] || randomUUID()).toString();
     context.requestId = requestId;
-    context.debugger = isDebug ? new Debugger('Root', requestId) : DisabledDebugger;
+    context.debugger = new Debugger('Root', requestId, isDebug);
   }
 
   // After request hook
-  const afterRequest = (method: string, path: string, context: Record<string, any>) => {
+  const afterRequest = (mode: string, method: string, path: string, context: Record<string, any>) => {
     if (context.debugger.enabled) {
-      console.log(`vvvvvvvvvvvvvvvvvvvvvvvvvvvv ${method}: ${path} vvvvvvvvvvvvvvvvvvvvvvvvvvvv`);
+      Console.printSolidBox(`[REQUEST] [${mode}] ${method}: ${path.split('?')[0]}`);
       console.log(context.debugger.toString());
-      console.log(`^^^^^^^^^^^^^^^^^^^^^^^^^^^^ ${method}: ${path} ^^^^^^^^^^^^^^^^^^^^^^^^^^^^`);
+      Console.printDoubleBox(`[REQUEST] [${mode}] ${method}: ${path.split('?')[0]}`);
     }
   }
 
@@ -92,7 +93,15 @@ export const start = async (): Promise<Prxi> => {
       },
 
       afterHTTPRequest: (req, res, ctx) => {
-        afterRequest(req.method, req.url, ctx);
+        afterRequest('HTTP/1.1', req.method, req.url, ctx);
+      },
+
+      upgrade: (req, socket, head, ctx) => {
+        beforeRequest(req.headers, ctx);
+      },
+
+      afterUpgrade: (req, socket, head, ctx) => {
+        afterRequest('WS', req.method, req.url, ctx);
       },
 
       beforeHTTP2Request: (stream, headers, ctx) => {
@@ -101,6 +110,7 @@ export const start = async (): Promise<Prxi> => {
 
       afterHTTP2Request: (stream, headers, ctx) => {
         afterRequest(
+          'HTTP/2',
           headers[constants.HTTP2_HEADER_METHOD].toString(),
           headers[constants.HTTP2_HEADER_PATH].toString(),
           ctx);

@@ -4,8 +4,7 @@ import { getConfig } from "../src/config/getConfig";
 import { ok, strictEqual } from "assert";
 import { parse } from "cookie";
 
-@suite()
-class PageMappingSuite extends BaseSuite {
+class BasePageMappingSuite extends BaseSuite {
   @test()
   async pageEndpoint() {
     const uri = '/pages/test?q=str';
@@ -59,5 +58,26 @@ class PageMappingSuite extends BaseSuite {
       const url = page.url();
       ok(url.indexOf(getConfig().redirect.pageRequest.e403) === 0, `Actual URL: ${url}; Expected URL: ${getConfig().redirect.pageRequest.e403}`);
     });
+  }
+}
+
+@suite()
+class HttpPageMappingSuite extends BasePageMappingSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsPageMappingSuite extends BasePageMappingSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+@suite()
+class Http2PageMappingSuite extends BasePageMappingSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

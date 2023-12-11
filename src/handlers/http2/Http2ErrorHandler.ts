@@ -1,13 +1,14 @@
 import { IncomingHttpHeaders, ServerHttp2Stream } from "http2";
 import { Http2ErrorHandler } from "prxi";
-import getLogger from "../../Logger";
 import { getConfig } from "../../config/getConfig";
 import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
+import { Context } from "../../types/Context";
 
-export const http2ErrorHandler: Http2ErrorHandler = async (stream: ServerHttp2Stream, headers: IncomingHttpHeaders, err: Error): Promise<void> => {
+export const http2ErrorHandler: Http2ErrorHandler = async (stream: ServerHttp2Stream, headers: IncomingHttpHeaders, err: Error, context: Context): Promise<void> => {
+  const _ = context.debugger.child('http2ErrorHandler');
+
   console.log(err);
-  const logger = getLogger('http2ErrorHandler');
-  logger.child({ error: err.message }).error('Unexpected error occurred');
+  _.error('Unexpected error occurred', err);
 
   let code = 500;
   let message = 'Unexpected error occurred';
@@ -20,8 +21,8 @@ export const http2ErrorHandler: Http2ErrorHandler = async (stream: ServerHttp2St
   }
 
   if (redirectTo) {
-    return sendRedirect(stream, headers, redirectTo);
+    return sendRedirect(_, stream, headers, redirectTo);
   }
 
-  await sendErrorResponse(stream, headers, code, message);
+  await sendErrorResponse(_, stream, headers, code, message);
 }

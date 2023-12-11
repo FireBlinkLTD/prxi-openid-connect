@@ -162,13 +162,6 @@ class HttpsApiMappingSuite extends BaseApiMappingSuite {
   }
 }
 
-// @suite()
-// class Http2H2cApiMappingSuite extends BaseApiMappingSuite {
-//   constructor() {
-//     super('HTTP2', false);
-//   }
-// }
-
 @suite()
 class Http2ApiMappingSuite extends BaseApiMappingSuite {
   constructor() {

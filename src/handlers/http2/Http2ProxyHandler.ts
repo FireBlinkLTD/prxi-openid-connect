@@ -4,8 +4,6 @@ import { getConfig } from "../../config/getConfig";
 import { Mapping } from "../../config/Mapping";
 import { JWTVerificationResult, OpenIDUtils } from "../../utils/OpenIDUtils";
 import { JwtPayload, verify } from 'jsonwebtoken';
-import getLogger from "../../Logger";
-import { Logger } from "pino";
 import { RequestUtils } from "../../utils/RequestUtils";
 import { IncomingHttpHeaders, OutgoingHttpHeaders, ServerHttp2Stream, constants } from "http2";
 import { prepareInvalidatedAuthCookies, prepareSetCookies, prepareAuthCookies } from "../../utils/ResponseUtils";
@@ -13,64 +11,58 @@ import { Debugger } from "../../utils/Debugger";
 import { Context } from "../../types/Context";
 
 export class Http2ProxyHandler implements Http2RequestHandlerConfig {
-  private logger: Logger;
-
-  constructor() {
-    this.logger = getLogger('Http2ProxyHandler')
-  }
-
   /**
    * @inheritdoc
    */
   public isMatching(method: HttpMethod, path: string, context: Context): boolean {
-    const debug = context.debugger.child('Http2ProxyHandler -> isMatching', { method, path });
+    const _ = context.debugger.child('Http2ProxyHandler -> isMatching', { method, path });
 
-    debug.event('Looking for public matches');
+    _.debug('Looking for public matches');
     context.mapping = this.findMatchingMapping(
-      debug,
+      _,
       getConfig().mappings.public,
       method,
       path
     );
 
     if (context.mapping) {
-      debug.event('Handling public mapping');
+      _.debug('Handling public mapping');
       context.public = true;
 
       return true;
     }
 
-    debug.event('Looking for API matches');
+    _.debug('Looking for API matches');
     context.mapping = this.findMatchingMapping(
-      debug,
+      _,
       getConfig().mappings.api,
       method,
       path
     );
 
     if (context.mapping) {
-      debug.event('Handling API mapping');
+      _.debug('Handling API mapping');
       context.api = true;
 
       return true;
     }
 
-    debug.event('Looking for pages matches');
+    _.debug('Looking for page matches');
     context.mapping = this.findMatchingMapping(
-      debug,
+      _,
       getConfig().mappings.pages,
       method,
       path
     );
 
     if (context.mapping) {
-      debug.event('Handling page mapping');
+      _.debug('Handling page mapping');
       context.page = true;
 
       return true;
     }
 
-    debug.event('No mappings found');
+    _.debug('No mappings found');
     return false
   }
 
@@ -78,33 +70,34 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
    * @inheritdoc
    */
   async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
-    const debug = context.debugger.child('Http2ProxyHandler -> handle', { context, headers, method, path });
+    const _ = context.debugger.child('Http2ProxyHandler -> handle', { context, headers, method, path });
     const cookies = RequestUtils.getCookies(headers);
-    debug.event('getCookies', { cookies, public: context.public });
+    _.debug('-> RequestUtils.getCookies', { cookies });
 
     // skip JWT validation for public mappings
     if (context.public) {
-      debug.event('Proxy request for the public mapping');
+      _.debug('Proxy request for the public mapping');
+      const cookie = RequestUtils.prepareProxyCookies(headers, cookies);
+      _.debug('Cookie header', { cookie });
       await proxyRequest({
         proxyRequestHeaders: {
-          'cookie': RequestUtils.prepareProxyCookies(headers, cookies),
+          'cookie': cookie,
         }
       });
-
       return;
     }
 
     let metaPayload: Record<string, any> = null;
     const metaToken = cookies[getConfig().cookies.names.meta];
     if (metaToken) {
-      debug.event('Meta cookie found, processing');
       metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
         complete: false,
       });
+      _.debug('Meta cookie found', { metaPayload });
     }
 
     let { reject: breakFlow, cookiesToSet} = await this.handleAuthenticationFlow(
-      debug.child('-> handleAuthenticationFlow'),
+      _.child('-> handleAuthenticationFlow'),
       stream,
       headers,
       cookies,
@@ -114,12 +107,12 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
       metaPayload?.p
     );
     if (breakFlow) {
-      debug.event('Breaking upon authentication');
+      _.debug('Breaking upon authentication');
       return;
     }
 
     breakFlow = this.handleAuthorizationFlow(
-      debug.child('-> handleAuthorizationFlow'),
+      _.child('-> handleAuthorizationFlow'),
       stream,
       headers,
       method,
@@ -127,14 +120,14 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
       context
     );
     if (breakFlow) {
-      debug.event('Breaking upon authorization');
+      _.debug('Breaking upon authorization');
       return;
     }
 
     const proxyRequestHeaders: Record<string, string | string[] | null> = {};
     if (getConfig().headers.claims.auth.all) {
       const value = JSON.stringify(context.claims?.auth?.all || {});
-      debug.event('Adding "claims.auth.all" header', {
+      _.debug('Adding "claims.auth.all" header', {
         name: getConfig().headers.claims.auth.all,
         value,
       });
@@ -143,7 +136,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
 
     if (getConfig().headers.claims.auth.matching) {
       const value = JSON.stringify(context.claims?.auth?.matching || {});
-      debug.event('Adding "claims.auth.matching" header', {
+      _.debug('Adding "claims.auth.matching" header', {
         name: getConfig().headers.claims.auth.matching,
         value,
       });
@@ -152,7 +145,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
 
     if (getConfig().headers.claims.proxy) {
       const value = JSON.stringify(context.claims?.proxy || {});
-      debug.event('Adding "claims.auth.proxy" header', {
+      _.debug('Adding "claims.proxy" header', {
         name: getConfig().headers.claims.proxy,
         value,
       });
@@ -161,7 +154,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
 
     if (getConfig().headers.meta && metaPayload?.p) {
       const value = JSON.stringify(metaPayload.p);
-      debug.event('Adding "meta" header', {
+      _.debug('Adding "meta" header', {
         name: getConfig().headers.meta,
         value,
       });
@@ -169,58 +162,56 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     }
 
     proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(headers, cookies);
+
+    let outgoingSetCookies: string[];
     if (Object.keys(cookiesToSet).length) {
-      const value = prepareSetCookies(cookiesToSet);
-      debug.event('Adding cookie header', {
-        name: 'Set-Cookie',
-        value,
-      });
-      proxyRequestHeaders['Set-Cookie'] = value;
+      outgoingSetCookies = prepareSetCookies(cookiesToSet);
     }
 
-    debug.event('Proceeding to proxy request');
+    _.debug('Proceeding to proxy request', { proxyRequestHeaders, outgoingSetCookies });
     await proxyRequest({
       proxyRequestHeaders,
-      onBeforeResponse: (_: Response, outgoingHeaders: OutgoingHttpHeaders) => {
-        const d = debug.child('-> proxyRequest -> onBeforeResponse');
+      onBeforeResponse: (resp: Response, outgoingHeaders: OutgoingHttpHeaders) => {
+        const d = _.child('-> proxyRequest -> onBeforeResponse', {outgoingHeaders});
         const setCookieName = 'set-cookie';
         const setCookieHeader = outgoingHeaders[setCookieName];
-        if (setCookieHeader) {
-          d.event('Set-Cookie header exists in the response');
-          const outgoingCookieHeader = outgoingHeaders[setCookieName];
-          if (!outgoingCookieHeader) {
-            d.event('No need to merge cookies, set as is', {
+        if (setCookieHeader || outgoingSetCookies) {
+          d.debug('Set-Cookie header exists in the response or need to add more cookies');
+          if (!outgoingSetCookies) {
+            d.debug('No need to merge cookies, set as is', {
               value: setCookieHeader,
             });
             // when no need to merge cookies
             outgoingHeaders[setCookieName] = <string | string[]> setCookieHeader;
+          } else if (!setCookieHeader) {
+            outgoingHeaders[setCookieName] = outgoingSetCookies;
           } else {
             // merge cookies
-            const cookies: Array<string> = [];
+            const cookies = new Set<string>();
 
             // merge function
             const merge = (cookiesToSet: string | number | string[]) => {
               /* istanbul ignore else */
               if (Array.isArray(cookiesToSet)) {
                 for(const cookie of cookiesToSet) {
-                  cookies.push(cookie);
+                  cookies.add(cookie);
                 }
               } else {
-                cookies.push(cookiesToSet.toString())
+                cookies.add(cookiesToSet.toString())
               }
             }
 
             // merge cookies
-            merge(outgoingCookieHeader);
+            merge(outgoingSetCookies);
             merge(setCookieHeader);
 
-            d.event('Cookies merged', {
+            d.debug('Cookies merged', {
               value: cookies,
             });
-            outgoingHeaders[setCookieName] = cookies;
+            outgoingHeaders[setCookieName] = [...cookies];
           }
         }
-        d.event('End');
+        d.debug('End');
       }
     });
   }
@@ -237,11 +228,11 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
    * @param metaPayload
    * @returns
    */
-  private async handleAuthenticationFlow(debug: Debugger, stream: ServerHttp2Stream, headers: IncomingHttpHeaders, cookies: Record<string, string>, method: string, path: string, context: Record<string, any>, metaPayload: Record<string, any>): Promise<{
+  private async handleAuthenticationFlow(_: Debugger, stream: ServerHttp2Stream, headers: IncomingHttpHeaders, cookies: Record<string, string>, method: string, path: string, context: Context, metaPayload: Record<string, any>): Promise<{
     reject: boolean,
     cookiesToSet?: Record<string, {value: string, expires?: Date}>,
   }> {
-    debug.event('Handling authentication flow', {
+    _.debug('Handling authentication flow', {
       cookies,
       path,
       method,
@@ -255,7 +246,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.refreshToken];
 
     let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
-    let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(context.idTokenJWT);
+    let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(idToken);
 
     context.accessTokenJWT = accessTokenJWT;
     context.idTokenJWT = idTokenJWT;
@@ -270,13 +261,14 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
       )
     ) {
       try {
-        debug.event('Refreshing token', { refreshToken, accessTokenVerificationResult, idTokenVerificationResult });
+        _.debug('Refreshing token', { refreshToken, accessTokenVerificationResult, idTokenVerificationResult });
         const tokens = await OpenIDUtils.refreshTokens(refreshToken);
+        _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
 
         let metaToken;
         if (metaPayload) {
           metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
-          debug.event('Meta token prepared', { metaToken });
+          _.debug('Meta token prepared', { metaToken });
         }
 
         cookiesToSet = prepareAuthCookies(tokens, metaToken);
@@ -292,8 +284,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
         context.accessTokenJWT = accessVerification.jwt;
         context.idTokenJWT = idVerification.jwt;
       } catch (e) {
-        debug.event('Unable to refresh token', { e });
-        this.logger.info(`Unable to refresh token`);
+        _.error(`Unable to refresh token`, e);
 
         accessToken = context.accessToken = null;
         idToken = context.idToken = null;
@@ -304,7 +295,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     }
 
     if (accessTokenVerificationResult === JWTVerificationResult.MISSING) {
-      debug.event('Access token is missing');
+      _.debug('Access token is missing');
       if (context.page) {
         let query = '';
         let queryIdx = headers[constants.HTTP2_HEADER_PATH].indexOf('?');
@@ -312,7 +303,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
           query = headers[constants.HTTP2_HEADER_PATH].toString().substring(queryIdx);
         }
 
-        debug.event('Preparing auth cookies to be invalidated, keeping original path', {
+        _.debug('Preparing auth cookies to be invalidated, keeping original path', {
           value: path + query,
         });
         cookiesToSet = prepareInvalidatedAuthCookies({
@@ -322,59 +313,63 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
           }
         })
       } else {
-        debug.event('Preparing auth cookies to be invalidated');
+        _.debug('Preparing auth cookies to be invalidated');
         cookiesToSet = prepareInvalidatedAuthCookies();
       }
 
       if (context.mapping.auth.required) {
         if (context.page) {
-          debug.event('Auth required, sending redirect to the auth page');
-          sendRedirect(stream, headers, OpenIDUtils.getAuthorizationUrl());
+          _.debug('Auth required, sending redirect to the auth page');
+          sendRedirect(_, stream, headers, OpenIDUtils.getAuthorizationUrl(), {
+            'Set-Cookie': prepareSetCookies(cookiesToSet),
+          });
         } else {
-          debug.event('Auth required, sending 401 error response');
-          sendErrorResponse(stream, headers, 401, 'Unauthorized');
+          _.debug('Auth required, sending 401 error response');
+          sendErrorResponse(_, stream, headers, 401, 'Unauthorized', {
+            'Set-Cookie': prepareSetCookies(cookiesToSet),
+          });
         }
 
-        debug.event('Access token is missing but mapping requires auth');
+        _.debug('Access token is missing but mapping requires auth');
         return {
           reject: true
         };
       } else {
-        debug.event('Access token is missing and auth isn\'t required');
+        _.debug('Access token is missing and auth isn\'t required');
         delete context.idTokenJWT;
         delete context.accessTokenJWT;
       }
     } else if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
-      debug.event('Access token verification failed', {
+      _.debug('Access token verification failed', {
         accessTokenVerificationResult,
       });
 
       const cookiesToSet = prepareSetCookies(prepareInvalidatedAuthCookies());
       if (context.page) {
-        debug.event('Sending redirect to the auth page', {
+        _.debug('Sending redirect to the auth page', {
           cookiesToSet,
         });
 
-        sendRedirect(stream, headers, OpenIDUtils.getAuthorizationUrl(), {
+        sendRedirect(_, stream, headers, OpenIDUtils.getAuthorizationUrl(), {
           'Set-Cookie': cookiesToSet,
         });
       } else {
-        debug.event('Sending 401 error', {
+        _.debug('Sending 401 error', {
           cookiesToSet,
         });
 
-        sendErrorResponse(stream, headers, 401, 'Unauthorized', {
+        sendErrorResponse(_, stream, headers, 401, 'Unauthorized', {
           'Set-Cookie': cookiesToSet,
         });
       }
 
-      this.logger.debug('Access token is invalid but mapping requires auth');
+      _.debug('Access token is invalid but mapping requires auth');
       return {
         reject: true
       };
     }
 
-    this.logger.debug('Authentication flow passes');
+    _.debug('Authentication flow passes', { cookiesToSet });
     return {
       reject: false,
       cookiesToSet,
@@ -391,26 +386,26 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
    * @param context
    * @returns
    */
-  private handleAuthorizationFlow(debug: Debugger, stream: ServerHttp2Stream, headers: IncomingHttpHeaders, method: string, path: string, context: Record<string, any>): boolean {
-    const claims = RequestUtils.isAllowedAccess(this.logger, context.accessTokenJWT, context.idTokenJWT, context.mapping);
-    debug.event('-> RequestUtils.isAllowedAccess()', { claims });
+  private handleAuthorizationFlow(_: Debugger, stream: ServerHttp2Stream, headers: IncomingHttpHeaders, method: string, path: string, context: Record<string, any>): boolean {
+    const claims = RequestUtils.isAllowedAccess(_.child('RequestUtils'), context.accessTokenJWT, context.idTokenJWT, context.mapping);
+    _.debug('-> RequestUtils.isAllowedAccess()', { claims });
 
     if (!claims) {
       if (context.page && getConfig().redirect.pageRequest.e403) {
-        debug.event('No claims extracted, sending redirect to custom 403 page', {
+        _.debug('No claims extracted, sending redirect to custom 403 page', {
           redirectTo: getConfig().redirect.pageRequest.e403,
         })
-        sendRedirect(stream, headers, getConfig().redirect.pageRequest.e403);
+        sendRedirect(_, stream, headers, getConfig().redirect.pageRequest.e403);
       } else {
-        debug.event('No claims extracted, sending 403 response');
-        sendErrorResponse(stream, headers, 403, 'Forbidden');
+        _.debug('No claims extracted, sending 403 response');
+        sendErrorResponse(_, stream, headers, 403, 'Forbidden');
       }
 
       return true;
     }
 
     context.claims = claims;
-    debug.event('Access allowed', { context });
+    _.debug('Access allowed', { context });
 
     return false;
   }
@@ -423,8 +418,8 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
    * @param path
    * @returns
    */
-  private findMatchingMapping(debug: Debugger, mappings: Mapping[], method: HttpMethod, path: string): Mapping | null {
-    debug.event('Looking for a match', {
+  private findMatchingMapping(_: Debugger, mappings: Mapping[], method: HttpMethod, path: string): Mapping | null {
+    _.debug('Looking for a match', {
       method,
       path
     });
@@ -441,13 +436,13 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
         }
 
         if (!exclude) {
-          debug.event('Match found');
+          _.debug('Match found');
           return mapping;
         }
       }
     }
 
-    debug.event('No matches found');
+    _.debug('No matches found');
     return null;
   }
 }

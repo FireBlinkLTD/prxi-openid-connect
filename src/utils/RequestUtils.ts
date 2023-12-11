@@ -4,6 +4,7 @@ import { Mapping } from "../config/Mapping";
 import { getConfig } from "../config/getConfig";
 import { Logger } from "pino";
 import { Jwt } from "jsonwebtoken";
+import { Debugger } from "./Debugger";
 
 export class RequestUtils {
   /**
@@ -60,7 +61,7 @@ export class RequestUtils {
    * @returns false if access denied, object with claims when allowed
    */
   public static isAllowedAccess(
-    logger: Logger,
+    _: Debugger,
     accessTokenJWT: Jwt,
     idTokenJWT: Jwt,
     mapping: Mapping
@@ -92,7 +93,9 @@ export class RequestUtils {
     }
 
     if (pass) {
-      logger.child({matchingAuthClaims}).debug('Found intersection of claims, access allowed');
+      _.debug('Found intersection of claims, access allowed', {
+        matchingAuthClaims,
+      });
     }
 
     if (pass || !auth.required) {
@@ -110,10 +113,10 @@ export class RequestUtils {
       };
     }
 
-    logger.child({
+    _.info('No intersection of claims found, access denied', {
       expectedClaims: auth.claims,
       actualClaims: jwtClaims,
-    }).info('No intersection of claims found, access denied');
+    });
 
     return false;
   }

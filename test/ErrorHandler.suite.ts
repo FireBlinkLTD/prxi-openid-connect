@@ -3,8 +3,7 @@ import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
 
-@suite()
-class ErrorHandlerSuite extends BaseSuite {
+class BaseErrorHandlerSuite extends BaseSuite {
   @test()
   async e503() {
     await this.reloadPrxiWith({
@@ -38,5 +37,26 @@ class ErrorHandlerSuite extends BaseSuite {
       const json = await this.getJsonFromPage(page);
       strictEqual(json.http.url, '/api/test');
     });
+  }
+}
+
+@suite()
+class HttpErrorHandlerSuite extends BaseErrorHandlerSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsErrorHandlerSuite extends BaseErrorHandlerSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+@suite()
+class Http2ErrorHandlerSuite extends BaseErrorHandlerSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

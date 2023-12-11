@@ -9,6 +9,7 @@ import getLogger from "../../Logger";
 import { Logger } from "pino";
 import { RequestUtils } from "../../utils/RequestUtils";
 import { Context } from "../../types/Context";
+import { Debugger } from "../../utils/Debugger";
 
 export class ProxyHandler implements HttpRequestHandlerConfig {
   private logger: Logger;
@@ -21,6 +22,9 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
    * @inheritdoc
    */
   public isMatching(method: HttpMethod, path: string, context: Context): boolean {
+    const _ = context.debugger.child('ProxyHandler -> isMatching', {method, path});
+
+    _.debug('Looking for public matches');
     context.mapping = this.findMatchingMapping(
       getConfig().mappings.public,
       method,
@@ -28,12 +32,13 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).debug('Handling public mapping');
+      _.debug('Handling public mapping');
       context.public = true;
 
       return true;
     }
 
+    _.debug('Looking for API matches');
     context.mapping = this.findMatchingMapping(
       getConfig().mappings.api,
       method,
@@ -41,12 +46,13 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).debug('Handling api mapping');
+      _.debug('Handling api mapping');
       context.api = true;
 
       return true;
     }
 
+    _.debug('Looking for page matches');
     context.mapping = this.findMatchingMapping(
       getConfig().mappings.pages,
       method,
@@ -54,7 +60,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     );
 
     if (context.mapping) {
-      this.logger.child({mapping: context.mapping}).debug('Handling page mapping');
+      _.debug('Handling page mapping');
       context.page = true;
 
       return true;
@@ -67,10 +73,13 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
    * @inheritdoc
    */
   async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: string, path: string, context: Context): Promise<void> {
+    const _ = context.debugger.child('ProxyHandler -> handle', {method, path, context});
     const cookies = RequestUtils.getCookies(req.headers);
+    _.debug('-> RequestUtils.getCookies', { cookies });
 
     // skip JWT validation for public mappings
     if (context.public) {
+      _.debug('Proxy request for the public mapping');
       await proxyRequest({
         proxyRequestHeaders: {
           'cookie': RequestUtils.prepareProxyCookies(req.headers, cookies),
@@ -86,48 +95,90 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
       metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
         complete: false,
       });
+      _.debug('Meta cookie found', { metaPayload });
     }
 
-    let breakFlow = await this.handleAuthenticationFlow(cookies, req, res, method, path, context, metaPayload?.p);
+    let breakFlow = await this.handleAuthenticationFlow(
+      _.child('-> handleAuthenticationFlow'),
+      cookies,
+      req,
+      res,
+      method,
+      path,
+      context,
+      metaPayload?.p
+    );
     if (breakFlow) {
-      this.logger.debug('Breaking upon authentication');
+      _.debug('Breaking upon authentication');
       return;
     }
 
-    breakFlow = this.handleAuthorizationFlow(req, res, method, path, context);
+    breakFlow = this.handleAuthorizationFlow(
+      _.child('-> handleAuthorizationFlow'),
+      req,
+      res,
+      method,
+      path,
+      context
+    );
     if (breakFlow) {
-      this.logger.debug('Breaking upon authorization');
+      _.debug('Breaking upon authorization');
       return;
     }
 
     const proxyRequestHeaders: Record<string, string | string[] | null> = {};
     if (getConfig().headers.claims.auth.all) {
-      proxyRequestHeaders[getConfig().headers.claims.auth.all] = JSON.stringify(context.claims?.auth?.all || {});
+      const value = JSON.stringify(context.claims?.auth?.all || {});
+      _.debug('Adding "claims.auth.all" header', {
+        name: getConfig().headers.claims.auth.all,
+        value,
+      });
+      proxyRequestHeaders[getConfig().headers.claims.auth.all] = value;
     }
 
     if (getConfig().headers.claims.auth.matching) {
-      proxyRequestHeaders[getConfig().headers.claims.auth.matching] = JSON.stringify(context.claims?.auth?.matching || {});
+      const value = JSON.stringify(context.claims?.auth?.matching || {});
+      _.debug('Adding "claims.auth.matching" header', {
+        name: getConfig().headers.claims.auth.matching,
+        value,
+      });
+      proxyRequestHeaders[getConfig().headers.claims.auth.matching] = value;
     }
 
     if (getConfig().headers.claims.proxy) {
-      proxyRequestHeaders[getConfig().headers.claims.proxy] = JSON.stringify(context.claims?.proxy || {});
+      const value = JSON.stringify(context.claims?.proxy || {});
+      _.debug('Adding "claims.proxy" header', {
+        name: getConfig().headers.claims.proxy,
+        value,
+      });
+      proxyRequestHeaders[getConfig().headers.claims.proxy] = value;
     }
 
     if (getConfig().headers.meta && metaPayload?.p) {
-      proxyRequestHeaders[getConfig().headers.meta] = JSON.stringify(metaPayload.p);
+      const value = JSON.stringify(metaPayload.p);
+      _.debug('Adding "meta" header', {
+        name: getConfig().headers.meta,
+        value,
+      });
+      proxyRequestHeaders[getConfig().headers.meta] = value;
     }
 
     proxyRequestHeaders['cookie'] = RequestUtils.prepareProxyCookies(req.headers, cookies);
 
-    this.logger.debug('Proceeding to proxy request');
+    _.debug('Proceeding to proxy request', { proxyRequestHeaders });
     await proxyRequest({
       proxyRequestHeaders,
       onBeforeResponse: (res: ServerResponse, outgoingHeaders: OutgoingHttpHeaders) => {
+        const d = _.child('-> proxyRequest -> onBeforeResponse', { outgoingHeaders });
         const setCookieName = 'set-cookie';
         const setCookieHeader = res.getHeader(setCookieName);
         if (setCookieHeader) {
+          d.debug('Set-Cookie header exists in the response');
           const outgoingCookieHeader = outgoingHeaders[setCookieName];
           if (!outgoingCookieHeader) {
+            d.debug('No need to merge cookies, set as is', {
+              value: setCookieHeader,
+            });
             // when no need to merge cookies
             outgoingHeaders[setCookieName] = <string | string[]> setCookieHeader;
           } else {
@@ -150,15 +201,20 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
             merge(outgoingCookieHeader);
             merge(setCookieHeader);
 
+            d.debug('Cookies merged', {
+              value: cookies,
+            });
             outgoingHeaders[setCookieName] = cookies;
           }
         }
+        d.debug('End');
       }
     });
   }
 
   /**
    * Handle authentication flow
+   * @param _
    * @param cookies
    * @param req
    * @param res
@@ -167,7 +223,16 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
    * @param context
    * @returns
    */
-  private async handleAuthenticationFlow(cookies: Record<string, string>, req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>, metaPayload: Record<string, any>): Promise<boolean> {
+  private async handleAuthenticationFlow(
+    _: Debugger,
+    cookies: Record<string, string>,
+    req: IncomingMessage,
+    res: ServerResponse,
+    method: string,
+    path: string,
+    context: Context,
+    metaPayload: Record<string, any>,
+  ): Promise<boolean> {
     this.logger.child({cookies: Object.keys(cookies), path, method, context}).debug('Handling authentication flow');
 
     let accessToken = context.accessToken = cookies[getConfig().cookies.names.accessToken];
@@ -175,7 +240,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.refreshToken];
 
     let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
-    let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(context.idTokenJWT);
+    let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(idToken);
 
     context.accessTokenJWT = accessTokenJWT;
     context.idTokenJWT = idTokenJWT;
@@ -190,11 +255,14 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
       )
     ) {
       try {
+        _.debug('Refreshing token', { refreshToken, accessTokenVerificationResult, idTokenVerificationResult });
         const tokens = await OpenIDUtils.refreshTokens(refreshToken);
+        _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
 
         let metaToken;
         if (metaPayload) {
           metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
+          _.debug('Meta token prepared', { metaToken });
         }
 
         setAuthCookies(res, tokens, metaToken);
@@ -210,7 +278,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
         context.accessTokenJWT = accessVerification.jwt;
         context.idTokenJWT = idVerification.jwt;
       } catch (e) {
-        this.logger.info(`Unable to refresh token`);
+        _.error(`Unable to refresh token`, e);
 
         accessToken = context.accessToken = null;
         idToken = context.idToken = null;
@@ -221,6 +289,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     }
 
     if (accessTokenVerificationResult === JWTVerificationResult.MISSING) {
+      _.debug('Access token is missing');
       if (context.page) {
         let query = '';
         let queryIdx = req.url.indexOf('?');
@@ -228,6 +297,9 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
           query = req.url.substring(queryIdx);
         }
 
+        _.debug('Invalidating auth cookies, keeping original path', {
+          value: path + query,
+        });
         invalidateAuthCookies(res, {
           [getConfig().cookies.names.originalPath]: {
             value: path + query,
@@ -235,42 +307,52 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
           }
         });
       } else {
+        _.debug('Invalidating auth cookies');
         invalidateAuthCookies(res);
       }
 
       if (context.mapping.auth.required) {
         if (context.page) {
+          _.debug('Auth required, sending redirect to the auth page');
           await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
         } else {
+          _.debug('Auth required, sending 401 error response');
           await sendErrorResponse(req, 401, 'Unauthorized', res);
         }
 
-        this.logger.debug('Access token is missing but mapping requires auth');
+        _.debug('Access token is missing but mapping requires auth');
         return true;
       } else {
-        this.logger.debug('Access token is missing and auth isn\'t required');
+        _.debug('Access token is missing and auth isn\'t required');
         delete context.idTokenJWT;
         delete context.accessTokenJWT;
       }
     } else if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
+      _.debug('Access token verification failed', {
+        accessTokenVerificationResult,
+      });
+
       invalidateAuthCookies(res);
 
       if (context.page) {
+        _.debug('Sending redirect to the auth page');
         await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
       } else {
+        _.debug('Sending 401 error');
         sendErrorResponse(req, 401, 'Unauthorized', res);
       }
 
-      this.logger.debug('Access token is invalid but mapping requires auth');
+      _.debug('Access token is invalid but mapping requires auth');
       return true;
     }
 
-    this.logger.debug('Authentication flow passes');
+    _.debug('Authentication flow passes');
     return false;
   }
 
   /**
    * Handle authorization flow
+   * @param _
    * @param req
    * @param res
    * @param method
@@ -278,13 +360,24 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
    * @param context
    * @returns
    */
-  private handleAuthorizationFlow(req: IncomingMessage, res: ServerResponse, method: string, path: string, context: Record<string, any>): boolean {
-    const claims = RequestUtils.isAllowedAccess(this.logger, context.accessTokenJWT, context.idTokenJWT, context.mapping);
+  private handleAuthorizationFlow(
+    _: Debugger,
+    req: IncomingMessage,
+    res: ServerResponse,
+    method: string, path: string,
+    context: Context,
+  ): boolean {
+    const claims = RequestUtils.isAllowedAccess(_.child('RequestUtils'), context.accessTokenJWT, context.idTokenJWT, context.mapping);
+    _.debug('-> RequestUtils.isAllowedAccess()', { claims });
 
     if (!claims) {
       if (context.page && getConfig().redirect.pageRequest.e403) {
+        _.debug('No claims extracted, sending redirect to custom 403 page', {
+          redirectTo: getConfig().redirect.pageRequest.e403,
+        });
         sendRedirect(req, res, getConfig().redirect.pageRequest.e403);
       } else {
+        _.debug('No claims extracted, sending 403 response');
         sendErrorResponse(req, 403, 'Forbidden', res);
       }
 
@@ -292,6 +385,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     }
 
     context.claims = claims;
+    _.debug('Access allowed', { context });
 
     return false;
   }

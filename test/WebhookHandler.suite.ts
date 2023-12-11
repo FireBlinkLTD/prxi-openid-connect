@@ -5,18 +5,17 @@ import { strictEqual } from "assert";
 
 const OpenApiMocker = require('open-api-mocker');
 
-@suite()
-class PublicMappingSuite extends BaseSuite {
+class BasePublicMappingSuite extends BaseSuite {
   private mockServer: any;
 
   private static mockPort = 7777;
-  private static rejectURL = `http://localhost:${PublicMappingSuite.mockPort}/reject`;
-  private static loginFailure = `http://localhost:${PublicMappingSuite.mockPort}/login-fail`;
-  private static redirectToURL = `http://localhost:${PublicMappingSuite.mockPort}/redirectTo`;
-  private static refreshToken = `http://localhost:${PublicMappingSuite.mockPort}/refreshToken`;
-  private static logout = `http://localhost:${PublicMappingSuite.mockPort}/logout`;
-  private static logoutFailure = `http://localhost:${PublicMappingSuite.mockPort}/logout-fail`;
-  private static metaURL = `http://localhost:${PublicMappingSuite.mockPort}/meta`;
+  private static rejectURL = `http://localhost:${BasePublicMappingSuite.mockPort}/reject`;
+  private static loginFailure = `http://localhost:${BasePublicMappingSuite.mockPort}/login-fail`;
+  private static redirectToURL = `http://localhost:${BasePublicMappingSuite.mockPort}/redirectTo`;
+  private static refreshToken = `http://localhost:${BasePublicMappingSuite.mockPort}/refreshToken`;
+  private static logout = `http://localhost:${BasePublicMappingSuite.mockPort}/logout`;
+  private static logoutFailure = `http://localhost:${BasePublicMappingSuite.mockPort}/logout-fail`;
+  private static metaURL = `http://localhost:${BasePublicMappingSuite.mockPort}/meta`;
 
   public async before() {
     await this.initMockServer();
@@ -34,7 +33,7 @@ class PublicMappingSuite extends BaseSuite {
    */
   private async initMockServer(): Promise<void> {
     const mocker = this.mockServer = new OpenApiMocker({
-      port: PublicMappingSuite.mockPort,
+      port: BasePublicMappingSuite.mockPort,
       schema: 'test/assets/webhook/mock.yml',
     });
 
@@ -46,7 +45,7 @@ class PublicMappingSuite extends BaseSuite {
   async rejectLogin(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {
-        login: PublicMappingSuite.rejectURL,
+        login: BasePublicMappingSuite.rejectURL,
       }
     });
 
@@ -67,7 +66,7 @@ class PublicMappingSuite extends BaseSuite {
   async rejectLoginWithoutRedirectConfig(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {
-        login: PublicMappingSuite.rejectURL,
+        login: BasePublicMappingSuite.rejectURL,
       },
       redirect: {
         pageRequest: {
@@ -87,7 +86,7 @@ class PublicMappingSuite extends BaseSuite {
   async refreshToken(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {
-        login: PublicMappingSuite.refreshToken,
+        login: BasePublicMappingSuite.refreshToken,
       }
     });
 
@@ -109,7 +108,7 @@ class PublicMappingSuite extends BaseSuite {
 
     await this.reloadPrxiWith({
       webhook: {
-        login: PublicMappingSuite.redirectToURL,
+        login: BasePublicMappingSuite.redirectToURL,
       }
     });
 
@@ -126,7 +125,7 @@ class PublicMappingSuite extends BaseSuite {
   async testLoginFailure(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {
-        login: PublicMappingSuite.loginFailure,
+        login: BasePublicMappingSuite.loginFailure,
       }
     });
 
@@ -142,7 +141,7 @@ class PublicMappingSuite extends BaseSuite {
   async testLoginFailureWithE500Redirect(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {
-        login: PublicMappingSuite.loginFailure,
+        login: BasePublicMappingSuite.loginFailure,
       },
       redirect: {
         pageRequest: {
@@ -163,7 +162,7 @@ class PublicMappingSuite extends BaseSuite {
   async testMeta(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {
-        login: PublicMappingSuite.metaURL,
+        login: BasePublicMappingSuite.metaURL,
       }
     });
 
@@ -187,8 +186,8 @@ class PublicMappingSuite extends BaseSuite {
   async logoutEndpoint(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {
-        login: PublicMappingSuite.metaURL,
-        logout: PublicMappingSuite.logout,
+        login: BasePublicMappingSuite.metaURL,
+        logout: BasePublicMappingSuite.logout,
       }
     });
 
@@ -214,7 +213,7 @@ class PublicMappingSuite extends BaseSuite {
   async logoutFailEndpoint(): Promise<void> {
     await this.reloadPrxiWith({
       webhook: {
-        logout: PublicMappingSuite.logoutFailure,
+        logout: BasePublicMappingSuite.logoutFailure,
       }
     });
 
@@ -234,5 +233,26 @@ class PublicMappingSuite extends BaseSuite {
       const text = await this.getTextFromPage(page);
       strictEqual(text, '401: Unauthorized')
     });
+  }
+}
+
+@suite()
+class HttpPublicMappingSuite extends BasePublicMappingSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsPublicMappingSuite extends BasePublicMappingSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+@suite()
+class Http2PublicMappingSuite extends BasePublicMappingSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

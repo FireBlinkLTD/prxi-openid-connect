@@ -21,9 +21,9 @@ export class Http2LoginHandler implements Http2RequestHandlerConfig {
    * @inheritdoc
    */
   public isMatching(method: HttpMethod, path: string, context: Context): boolean {
-    const debug = context.debugger.child('Http2LoginHandler -> isMatching', {method, path});
+    const _ = context.debugger.child('Http2LoginHandler -> isMatching', {method, path});
     const matching = method === 'GET' && path === getConfig().loginPath;
-    debug.event('Matching', {matching});
+    _.debug('Matching', {matching});
 
     return matching;
   }
@@ -32,7 +32,7 @@ export class Http2LoginHandler implements Http2RequestHandlerConfig {
    * @inheritdoc
    */
   public async handle (stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
-    const debug = context.debugger.child('Http2LoginHandler -> handle', {method, path});
+    const _ = context.debugger.child('Http2LoginHandler -> handle', {method, path});
     this.logger.info('Handle login request');
 
     const fullPath = headers[constants.HTTP2_HEADER_PATH];
@@ -50,11 +50,11 @@ export class Http2LoginHandler implements Http2RequestHandlerConfig {
     }));
 
     const authURL = OpenIDUtils.getAuthorizationUrl();
-    debug.event('Redirecting', {
+    _.debug('Redirecting', {
       redirectTo: authURL,
       cookiesToSet: cookies,
     })
-    sendRedirect(stream, headers, authURL, {
+    sendRedirect(_, stream, headers, authURL, {
       'Set-Cookie': cookies,
     });
   }

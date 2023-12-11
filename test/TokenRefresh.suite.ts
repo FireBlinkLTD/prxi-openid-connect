@@ -3,8 +3,7 @@ import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
 
-@suite()
-class TokenRefreshSuite extends BaseSuite {
+class BaseTokenRefreshSuite extends BaseSuite {
   @test()
   async success() {
     const uri = '/api/test?q=str';
@@ -42,7 +41,11 @@ class TokenRefreshSuite extends BaseSuite {
 
       // remove access token cookie, replace refresh one with corrupted value
       await page.deleteCookie({ name: getConfig().cookies.names.accessToken });
-      await page.setCookie( { name: getConfig().cookies.names.refreshToken, value: 'oops' });
+      await page.setCookie( {
+        name: getConfig().cookies.names.refreshToken,
+        value: 'oops',
+        url: getConfig().hostURL,
+      });
 
       // do the same check once again
       await this.navigate(page, getConfig().hostURL + uri);
@@ -69,7 +72,11 @@ class TokenRefreshSuite extends BaseSuite {
 
       // remove access token cookie, replace refresh one with corrupted value
       await page.deleteCookie({ name: getConfig().cookies.names.accessToken });
-      await page.setCookie( { name: getConfig().cookies.names.refreshToken, value: 'oops' });
+      await page.setCookie( {
+        name: getConfig().cookies.names.refreshToken,
+        value: 'oops',
+        url: getConfig().hostURL,
+      });
 
       // do the same check once again
       await this.navigate(page, getConfig().hostURL + uri);
@@ -97,7 +104,11 @@ class TokenRefreshSuite extends BaseSuite {
 
       // remove access token cookie, replace refresh one with corrupted value
       await page.deleteCookie({ name: getConfig().cookies.names.accessToken });
-      await page.setCookie( { name: getConfig().cookies.names.refreshToken, value: 'oops' });
+      await page.setCookie( {
+        name: getConfig().cookies.names.refreshToken,
+        value: 'oops',
+        url: getConfig().hostURL,
+      });
 
       // do the same check once again
       await page.setExtraHTTPHeaders({
@@ -138,5 +149,26 @@ class TokenRefreshSuite extends BaseSuite {
       const text = await this.getTextFromPage(page);
       strictEqual(text, '401: Unauthorized');
     });
+  }
+}
+
+@suite()
+class HttpTokenRefreshSuite extends BaseTokenRefreshSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsTokenRefreshSuite extends BaseTokenRefreshSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+@suite()
+class Http2TokenRefreshSuite extends BaseTokenRefreshSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

@@ -8,8 +8,8 @@ import { JwtPayload, verify } from "jsonwebtoken";
 import { RequestUtils } from "../../utils/RequestUtils";
 import { IncomingHttpHeaders, ServerHttp2Stream } from "http2";
 import { prepareInvalidatedAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
-import { Context } from "../../types/Context";
 import { Debugger } from "../../utils/Debugger";
+import { Context } from "../../types/Context";
 
 export class Http2LogoutHandler implements Http2RequestHandlerConfig {
   private logger: Logger;
@@ -22,9 +22,9 @@ export class Http2LogoutHandler implements Http2RequestHandlerConfig {
    * @inheritdoc
    */
   public isMatching(method: HttpMethod, path: string, context: Context): boolean {
-    const debug = context.debugger.child('Http2LogoutHandler -> isMatching', {method, path});
+    const _ = context.debugger.child('Http2LogoutHandler -> isMatching', {method, path});
     const matching = method === 'GET' && path === getConfig().logoutPath;
-    debug.event('Matching', {matching});
+    _.debug('Matching', {matching});
 
     return matching;
   }
@@ -33,15 +33,15 @@ export class Http2LogoutHandler implements Http2RequestHandlerConfig {
    * @inheritdoc
    */
   public async handle (stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
-    const debug = context.debugger.child('Http2LogoutHandler -> handle', {method, path});
+    const _ = context.debugger.child('Http2LogoutHandler -> handle', {method, path});
     this.logger.info('Handle logout request');
-    await this.handleWebhook(debug.child('-> handleWebhook()'), headers);
+    await this.handleWebhook(_.child('-> handleWebhook()'), headers);
 
     const cookiesToSet = prepareSetCookies(prepareInvalidatedAuthCookies());
-    debug.event('Sending redirect', {
+    _.debug('Sending redirect', {
 
     })
-    sendRedirect(stream, headers, OpenIDUtils.getEndSessionUrl(), {
+    sendRedirect(_, stream, headers, OpenIDUtils.getEndSessionUrl(), {
       'Set-Cookie': cookiesToSet,
     });
   }
@@ -51,9 +51,9 @@ export class Http2LogoutHandler implements Http2RequestHandlerConfig {
    * @param debug
    * @param req
    */
-  private async handleWebhook(debug: Debugger, headers: IncomingHttpHeaders): Promise<void> {
+  private async handleWebhook(_: Debugger, headers: IncomingHttpHeaders): Promise<void> {
     if (getConfig().webhook.logout) {
-      debug.event('Making a webhook request upon logout', {
+      _.debug('Making a webhook request upon logout', {
         webhookURL: getConfig().webhook.logout
       });
 
@@ -68,7 +68,7 @@ export class Http2LogoutHandler implements Http2RequestHandlerConfig {
         metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
           complete: false,
         });
-        debug.event('Meta token found', {
+        _.debug('Meta token found', {
           metaPayload,
         })
       }
@@ -76,7 +76,7 @@ export class Http2LogoutHandler implements Http2RequestHandlerConfig {
       let accessToken = cookies[getConfig().cookies.names.accessToken];
       let idToken = cookies[getConfig().cookies.names.idToken];
 
-      debug.event('Making a POST request to', {
+      _.debug('Making a POST request to', {
         webhookURL: getConfig().webhook.logout
       })
       const resp = await fetch(getConfig().webhook.logout, {
@@ -94,13 +94,13 @@ export class Http2LogoutHandler implements Http2RequestHandlerConfig {
       });
 
       if (!resp.ok) {
-        debug.event('Request failed', {
+        _.debug('Request failed', {
           resp,
         })
         this.logger.child({status: resp.status}).error('Logout webhook request failed');
         throw new Error('Unable to make a logout webhook request');
       } else {
-        debug.event('Request completed', {
+        _.debug('Request completed', {
           resp,
         })
       }

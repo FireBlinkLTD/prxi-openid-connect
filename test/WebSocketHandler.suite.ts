@@ -9,10 +9,6 @@ import { serialize } from "cookie";
 
 @suite()
 class WebSocketSuite extends BaseSuite {
-  private static SELECTOR_TEXTAREA = '#content';
-  private static SELECTOR_SUBMIT = '#send';
-  private static SELECTOR_DISCONNECT = '#disconnect';
-
   @test()
   async publicEndpointWithoutAuth() {
     await this.test(false, false);
