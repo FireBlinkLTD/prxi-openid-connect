@@ -28,6 +28,7 @@ import { randomUUID } from 'crypto';
 import { IncomingHttpHeaders } from 'http';
 import { constants } from 'http2';
 import { Console } from './utils/Console';
+import { inspect } from 'util';
 
 // Prepare logger
 
@@ -60,18 +61,24 @@ export const start = async (testMode = false): Promise<Prxi> => {
   const isDebug = config.logLevel.toLowerCase() === 'debug';
 
   // Before request hook
-  const beforeRequest = (headers: IncomingHttpHeaders, context: Record<string, any>) => {
+  const beforeRequest = (mode: string, method: string, path: string, headers: IncomingHttpHeaders, context: Record<string, any>) => {
     const requestId = (headers['x-correlation-id'] || headers['x-trace-id'] || headers['x-request-id'] || randomUUID()).toString();
     context.requestId = requestId;
-    context.debugger = new Debugger('Root', requestId, isDebug);
+    context.debugger = new Debugger('Root', context.sessionId, requestId, isDebug);
+    logger.child({ requestId, _: {mode, path: path.split('?')[0], method} }).info('Processing request - start');
   }
 
   // After request hook
   const afterRequest = (mode: string, method: string, path: string, context: Record<string, any>) => {
+    path = path.split('?')[0];
+    logger.child({
+      requestId: context.requestId,
+      _: {mode, path, method}
+    }).info('Processing request - finished');
     if (context.debugger.enabled) {
-      Console.printSolidBox(`[REQUEST] [${mode}] ${method}: ${path.split('?')[0]}`);
+      Console.printSolidBox(`[REQUEST] [${mode}] ${method}: ${path}`);
       console.log(context.debugger.toString());
-      Console.printDoubleBox(`[REQUEST] [${mode}] ${method}: ${path.split('?')[0]}`);
+      Console.printDoubleBox(`[REQUEST] [${mode}] ${method}: ${path}`);
     }
   }
 
@@ -79,12 +86,28 @@ export const start = async (testMode = false): Promise<Prxi> => {
   const prxi = new Prxi({
     mode: config.mode,
     secure: config.secure,
-    logInfo: (message: any, ...params: any[]) => {
-      logger.child({params}).debug(message);
-    },
-    logError: (message: any, ...params: any[]) => {
-      /* istanbul ignore next */
-      logger.child({params}).error(message);
+    log: {
+      debug(context, message, params) {
+        if (context.debugger) {
+          context.debugger.debug(message, params);
+        } else {
+          logger.child({_: params}).debug(message);
+        }
+      },
+      info(context, message, params) {
+        if (context.debugger) {
+          context.debugger.info(message, params);
+        } else {
+          logger.child({_: params}).info(message);
+        }
+      },
+      error(context, message, error, params) {
+        if (context.debugger) {
+          context.debugger.error(message, error, params);
+        } else {
+          logger.child({_: params, error}).error(message);
+        }
+      }
     },
     port: config.port,
     hostname: config.hostname,
@@ -94,27 +117,38 @@ export const start = async (testMode = false): Promise<Prxi> => {
     responseHeaders: config.headers.response,
     proxyRequestHeaders: config.headers.request,
     on: {
-      beforeHTTPRequest: (req, res, ctx) => {
-        beforeRequest(req.headers, ctx);
+      beforeHTTPRequest(req, res, ctx) {
+        beforeRequest('HTTP/1.1', req.method, req.url, req.headers, ctx);
       },
 
-      afterHTTPRequest: (req, res, ctx) => {
+      afterHTTPRequest(req, res, ctx) {
         afterRequest('HTTP/1.1', req.method, req.url, ctx);
       },
 
-      upgrade: (req, socket, head, ctx) => {
-        beforeRequest(req.headers, ctx);
+      upgrade(req, socket, head, ctx) {
+        beforeRequest('WS', req.method, req.url, req.headers, ctx);
       },
 
-      afterUpgrade: (req, socket, head, ctx) => {
+      afterUpgrade(req, socket, head, ctx) {
         afterRequest('WS', req.method, req.url, ctx);
       },
 
-      beforeHTTP2Request: (stream, headers, ctx) => {
-        beforeRequest(headers, ctx);
+      beforeHTTP2Session(session, context) {
+        context.sessionId = randomUUID();
+        context.debugger = new Debugger('Root', context.sessionId, undefined, isDebug);
       },
 
-      afterHTTP2Request: (stream, headers, ctx) => {
+      beforeHTTP2Request(stream, headers, ctx) {
+        beforeRequest(
+          'HTTP/2',
+          headers[constants.HTTP2_HEADER_METHOD].toString(),
+          headers[constants.HTTP2_HEADER_PATH].toString(),
+          headers,
+          ctx,
+        );
+      },
+
+      afterHTTP2Request(stream, headers, ctx) {
         afterRequest(
           'HTTP/2',
           headers[constants.HTTP2_HEADER_METHOD].toString(),

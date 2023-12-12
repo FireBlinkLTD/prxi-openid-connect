@@ -4,12 +4,15 @@ import { Debugger } from "../utils/Debugger";
 
 export interface Context {
   requestId: string;
+  // only available for the HTTP/2 session
+  sessionId?: string;
+
   debugger: Debugger;
 
   // ws proxy handler
   wsMapping: Mapping,
 
-  //
+  // tokens
   accessToken?: string,
   accessTokenJWT?: Jwt,
   idToken?: string,

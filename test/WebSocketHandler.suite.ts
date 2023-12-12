@@ -7,8 +7,7 @@ import { prepareMapping } from "../src/config/Mapping";
 import {io} from 'socket.io-client';
 import { serialize } from "cookie";
 
-@suite()
-class WebSocketSuite extends BaseSuite {
+class BaseWebSocketSuite extends BaseSuite {
   @test()
   async publicEndpointWithoutAuth() {
     await this.test(false, false);
@@ -117,5 +116,26 @@ class WebSocketSuite extends BaseSuite {
 
       strictEqual(received, send);
     });
+  }
+}
+
+@suite()
+class HttpWebSocketSuite extends BaseWebSocketSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsWebSocketSuite extends BaseWebSocketSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+@suite()
+class Http2WebSocketSuite extends BaseWebSocketSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

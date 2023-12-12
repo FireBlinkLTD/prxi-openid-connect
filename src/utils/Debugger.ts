@@ -12,12 +12,15 @@ export class Debugger {
   private events: DebugEvent[];
   private logger: Logger;
 
-  constructor(public name: string, public requestId: string, public enabled = true) {
+  constructor(public name: string, public sessionId: string | undefined, public requestId: string | undefined, public enabled = true) {
     if (enabled) {
       this.events = [];
     }
 
-    this.logger = getLogger(name).child({ requestId });
+    this.logger = getLogger(name).child({
+      sessionId,
+      requestId,
+    });
   }
 
   /**
@@ -27,7 +30,7 @@ export class Debugger {
    * @returns
    */
   public child(name: string, state?: Record<string, any>): Debugger {
-    const child = new Debugger(name, this.requestId, this.enabled);
+    const child = new Debugger(name, this.sessionId, this.requestId, this.enabled);
 
     if (this.enabled) {
       this.events.push({

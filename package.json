@@ -46,7 +46,7 @@
     "node-graceful-shutdown": "^1.1.5",
     "openid-client": "^5.4.3",
     "pino": "^8.14.1",
-    "prxi": "^1.1.8"
+    "prxi": "^1.2.1"
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
