@@ -1,14 +1,14 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { getConfig } from "../config/getConfig";
-import { invalidateAuthCookies, sendRedirect } from "../utils/ResponseUtils";
-import { OpenIDUtils } from "../utils/OpenIDUtils";
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { invalidateAuthCookies, sendRedirect } from "../../utils/ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
 import { Logger } from "pino";
-import getLogger from "../Logger";
+import getLogger from "../../Logger";
 import { JwtPayload, verify } from "jsonwebtoken";
-import { RequestUtils } from "../utils/RequestUtils";
+import { RequestUtils } from "../../utils/RequestUtils";
 
-export class LogoutHandler implements RequestHandlerConfig {
+export class LogoutHandler implements HttpRequestHandlerConfig {
   private logger: Logger;
 
   constructor() {
@@ -43,7 +43,7 @@ export class LogoutHandler implements RequestHandlerConfig {
         webhookURL: getConfig().webhook.logout
       }).info('Making a webhook request upon logout');
 
-      const cookies = RequestUtils.getCookies(req);
+      const cookies = RequestUtils.getCookies(req.headers);
       let metaPayload: Record<string, any> = null;
       const metaToken = cookies[getConfig().cookies.names.meta];
       if (metaToken) {

@@ -4,13 +4,10 @@ import { getConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
 import { start } from "../src/Server";
 import { prepareMapping } from "../src/config/Mapping";
+import {io} from 'socket.io-client';
+import { serialize } from "cookie";
 
-@suite()
-class WebSocketSuite extends BaseSuite {
-  private static SELECTOR_TEXTAREA = '#content';
-  private static SELECTOR_SUBMIT = '#send';
-  private static SELECTOR_DISCONNECT = '#disconnect';
-
+class BaseWebSocketSuite extends BaseSuite {
   @test()
   async publicEndpointWithoutAuth() {
     await this.test(false, false);
@@ -38,12 +35,12 @@ class WebSocketSuite extends BaseSuite {
    */
   private async prepare(secure: boolean, additionalHeaders: boolean): Promise<void> {
     // use another host
-    getConfig().upstream = 'http://localhost:4444';
+    //getConfig().upstream = 'http://localhost:4444';
 
     if (secure) {
       getConfig().mappings.pages.push(
         prepareMapping({
-          pattern: '/.ws',
+          pattern: '/socket.io',
           auth: {
             claims: {
               realm: [
@@ -56,7 +53,7 @@ class WebSocketSuite extends BaseSuite {
     } else {
       getConfig().mappings.public.push(
         prepareMapping({
-          pattern: '/.ws'
+          pattern: '/socket.io'
         })
       );
     }
@@ -66,8 +63,8 @@ class WebSocketSuite extends BaseSuite {
       getConfig().headers.claims.auth.matching = 'X-MATCHING-CLAIMS';
     }
 
-    await this.prxi.stop();
-    this.prxi = await start();
+    await this.prxi.stop(true);
+    this.prxi = await start(true);
   }
 
   /**
@@ -78,30 +75,67 @@ class WebSocketSuite extends BaseSuite {
   private async test(withAuth: boolean, additionalHeaders: boolean): Promise<void> {
     await this.prepare(withAuth, additionalHeaders);
 
-    const uri = '/.ws';
+    const uri = '/socket.io';
     await this.withNewPage(getConfig().hostURL + uri, async (page) => {
       if (withAuth) {
         await this.loginOnKeycloak(page);
       }
 
-      const msg = 'HELLO';
+      const cookies = await page.cookies();
+      const sio = io(getConfig().hostURL, {
+        transports: ['websocket'],
+        reconnection: false,
+        extraHeaders: {
+          cookie: cookies.map(c => serialize(c.name, c.value)).join('; '),
+        }
+      });
 
-      // send message
-      console.log('-> WS: send message');
-      await page.type(WebSocketSuite.SELECTOR_TEXTAREA, msg);
-      await page.click(WebSocketSuite.SELECTOR_SUBMIT);
+      const send = 'test';
+      let received = null;
+      await new Promise<void>((res, rej) => {
+        const timeout = setTimeout(() => {
+          sio.disconnect();
+          rej(new Error('Unable to connect to WS'));
+        }, 2000);
 
-      // disconnect
-      console.log('-> WS: disconnect');
-      await this.wait(20);
-      await page.click(WebSocketSuite.SELECTOR_DISCONNECT);
+        sio.once('connect_error', (err) => {
+          console.error('connection error', err);
+        });
 
-      console.log('-> WS: get console state');
-      const consoleState = <string>(await page.evaluate(() => document.querySelector('#console').innerHTML));
+        sio.once('connect', () => {
+          sio.on('echo', (msg: string) => {
+            received = msg;
+            sio.disconnect();
+            clearTimeout(timeout);
+            res();
+          });
+          sio.emit('echo', send);
+        });
+      });
+      sio.disconnect();
 
-      // should appear twice, as [send] and [recv]
-      const messageMatchesCount = (consoleState.match(new RegExp(msg, 'g')) || []).length;
-      strictEqual(messageMatchesCount, 2);
+      strictEqual(received, send);
     });
+  }
+}
+
+@suite()
+class HttpWebSocketSuite extends BaseWebSocketSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsWebSocketSuite extends BaseWebSocketSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+@suite()
+class Http2WebSocketSuite extends BaseWebSocketSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

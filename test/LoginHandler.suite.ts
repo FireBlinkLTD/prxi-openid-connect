@@ -4,8 +4,7 @@ import { getConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
 import { OpenIDUtils } from "../src/utils/OpenIDUtils";
 
-@suite()
-export class LoginHandlerSuite extends BaseSuite {
+export class BaseLoginHandlerSuite extends BaseSuite {
   @test()
   async login() {
     const uri = '/api/test?q=str';
@@ -15,7 +14,7 @@ export class LoginHandlerSuite extends BaseSuite {
       // make sure we can access the resource
       await this.navigate(page, getConfig().hostURL + uri);
       const json = await this.getJsonFromPage(page);
-      strictEqual(json.http.originalUrl, uri);
+      strictEqual(json.http.url, uri);
     });
   }
 
@@ -28,7 +27,7 @@ export class LoginHandlerSuite extends BaseSuite {
       // make sure we can access the resource
       await this.navigate(page, getConfig().hostURL + uri);
       const json = await this.getJsonFromPage(page);
-      strictEqual(json.http.originalUrl, uri);
+      strictEqual(json.http.url, uri);
     });
   }
 
@@ -61,5 +60,26 @@ export class LoginHandlerSuite extends BaseSuite {
         })
       }
     );
+  }
+}
+
+@suite()
+class HttpLoginHandlerSuite extends BaseLoginHandlerSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsLoginHandlerSuite extends BaseLoginHandlerSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+@suite()
+class Http2LoginHandlerSuite extends BaseLoginHandlerSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

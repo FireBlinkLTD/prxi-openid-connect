@@ -1,9 +1,10 @@
 import { parse, serialize } from "cookie";
-import { IncomingMessage } from "http";
+import { IncomingHttpHeaders, IncomingMessage } from "http";
 import { Mapping } from "../config/Mapping";
 import { getConfig } from "../config/getConfig";
 import { Logger } from "pino";
 import { Jwt } from "jsonwebtoken";
+import { Debugger } from "./Debugger";
 
 export class RequestUtils {
   /**
@@ -11,15 +12,15 @@ export class RequestUtils {
    * @param req
    * @returns
    */
-  public static getCookies(req: IncomingMessage): Record<string, string> {
+  public static getCookies(headers: IncomingHttpHeaders): Record<string, string> {
     /* istanbul ignore else */
-    return req.headers.cookie ? parse(req.headers.cookie) : {};
+    return headers.cookie ? parse(headers.cookie) : {};
   }
 
   /**
    * Prepare proxy cookies
    */
-  public static prepareProxyCookies(req: IncomingMessage, cookies: Record<string, string>): string | string[] | null {
+  public static prepareProxyCookies(headers: IncomingHttpHeaders, cookies: Record<string, string>): string | string[] | null {
     const config = getConfig();
 
     if (config.headers.request) {
@@ -30,7 +31,7 @@ export class RequestUtils {
     }
 
     if (config.cookies.proxyToUpstream) {
-      return req.headers.cookie || null;
+      return headers.cookie || null;
     }
 
     const copy = {
@@ -59,7 +60,12 @@ export class RequestUtils {
    * @param mapping
    * @returns false if access denied, object with claims when allowed
    */
-  public static isAllowedAccess(logger: Logger, accessTokenJWT: Jwt, idTokenJWT: Jwt, mapping: Mapping): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
+  public static isAllowedAccess(
+    _: Debugger,
+    accessTokenJWT: Jwt,
+    idTokenJWT: Jwt,
+    mapping: Mapping
+  ): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
     const { authClaimPaths } = getConfig().jwt;
     const { auth } = mapping;
 
@@ -87,7 +93,9 @@ export class RequestUtils {
     }
 
     if (pass) {
-      logger.child({matchingAuthClaims}).debug('Found intersection of claims, access allowed');
+      _.debug('Found intersection of claims, access allowed', {
+        matchingAuthClaims,
+      });
     }
 
     if (pass || !auth.required) {
@@ -105,10 +113,10 @@ export class RequestUtils {
       };
     }
 
-    logger.child({
+    _.info('No intersection of claims found, access denied', {
       expectedClaims: auth.claims,
       actualClaims: jwtClaims,
-    }).info('No intersection of claims found, access denied');
+    });
 
     return false;
   }

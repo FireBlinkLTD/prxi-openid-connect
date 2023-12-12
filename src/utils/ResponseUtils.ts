@@ -10,7 +10,7 @@ let domain: string;
  * Get domain name for the current hostURL configuration setting
  * @returns
  */
-const getDomain = (): string => {
+export const getDomain = (): string => {
   if (!domain) {
     domain = new URL(getConfig().hostURL).hostname;
   }
@@ -24,7 +24,18 @@ const getDomain = (): string => {
  * @param override
  */
 export const invalidateAuthCookies = (resp: ServerResponse, override?: Record<string, { value: string, expires?: Date }>): void => {
-  getLogger('ResponseUtils').debug('Invalidate auth cookies');
+  const accessCookies = prepareInvalidatedAuthCookies(override);
+  setCookies(resp, accessCookies);
+}
+
+/**
+ * Prepare invalidate auth cookies
+ * @param resp
+ * @param override
+ */
+export const prepareInvalidatedAuthCookies = (override?: Record<string, { value: string, expires?: Date }>): Record<string, { value: string, expires?: Date }> => {
+  getLogger('ResponseUtils').debug('Prepare invalidate auth cookies');
+
   let accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
       value: 'n/a',
@@ -55,7 +66,7 @@ export const invalidateAuthCookies = (resp: ServerResponse, override?: Record<st
     }
   }
 
-  setCookies(resp, accessCookies);
+  return accessCookies;
 }
 
 /**
@@ -64,7 +75,17 @@ export const invalidateAuthCookies = (resp: ServerResponse, override?: Record<st
  * @param tokens
  */
 export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken?: string): void => {
-  getLogger('ResponseUtils').debug('Setting auth cookies');
+  const accessCookies = prepareAuthCookies(tokens, metaToken);
+  setCookies(resp, accessCookies);
+}
+
+/**
+ * Prepare Auth Cookies
+ * @param resp
+ * @param tokens
+ */
+export const prepareAuthCookies = (tokens: TokenSet, metaToken?: string): Record<string, { value: string, expires?: Date }> => {
+  getLogger('ResponseUtils').debug('Preparing auth cookies');
   const accessCookies: Record<string, { value: string, expires?: Date }> = {
     [getConfig().cookies.names.originalPath]: {
       value: 'n/a',
@@ -101,7 +122,7 @@ export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken
     }
   }
 
-  setCookies(resp, accessCookies);
+  return accessCookies;
 }
 
 /**
@@ -110,17 +131,7 @@ export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken
  * @param cookies
  */
 const setCookies = (resp: ServerResponse, cookies: Record<string, {value: string, expires?: Date}>): void => {
-  const setCookies = [];
-  for (const name of Object.keys(cookies)) {
-    setCookies.push(serialize(name, cookies[name].value, {
-        secure: getConfig().cookies.secure,
-        expires: cookies[name].expires,
-        sameSite: 'lax',
-        domain: getDomain(),
-        path: '/',
-    }));
-  }
-
+  const setCookies = prepareSetCookies(cookies);
   resp.setHeader('Set-Cookie', setCookies);
 }
 
@@ -136,12 +147,14 @@ export const sendRedirect = async (req: IncomingMessage, resp: ServerResponse, u
     await sendJsonResponse(200, {
       redirectTo: url
     }, resp);
-  } else {
-    getLogger('ResponseUtils').child({ url }).debug('Sending redirect');
-    resp.statusCode = 307;
-    resp.setHeader('Location', url);
-    resp.end();
+
+    return;
   }
+
+  getLogger('ResponseUtils').child({ url }).debug('Sending redirect');
+  resp.statusCode = 307;
+  resp.setHeader('Location', url);
+  resp.end();
 }
 
 /**
@@ -200,4 +213,23 @@ const sendResponse = async (statusCode: number, contentType: string, content: an
       res();
     });
   })
+}
+
+/**
+ * Prepare Set-Cookie header value
+ * @param resp
+ * @param cookies
+ */
+export const prepareSetCookies = (cookies: Record<string, {value: string, expires?: Date}>): string[] => {
+  const setCookies = [];
+  for (const name of Object.keys(cookies)) {
+    setCookies.push(serialize(name, cookies[name].value, {
+        secure: getConfig().cookies.secure,
+        expires: cookies[name].expires,
+        sameSite: 'lax',
+        domain: getDomain(),
+        path: '/',
+    }));
+  }
+  return setCookies;
 }

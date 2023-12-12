@@ -2,7 +2,7 @@
 
 [OpenID Connect reverse proxy server](https://hub.docker.com/r/fireblink/prxi-openid-connect) that based on a zero-dependency proxy library [prxi](https://www.npmjs.com/package/prxi).
 
-Can be used to provide SSO login (Authentication) functionality to any web application or API service, or both at the same time.
+Can be used to provide SSO login (Authentication/Authorization) functionality to any web application or API service, or both at the same time.
 In most of the cases prxi-openid-connect should be deployed in front of your application to intercept all the requests:
 
 ![diagram](docs/assets/prxi-openid-connect.png)
@@ -19,6 +19,7 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 
 #### Generic settings
 - `LICENSE_CONSENT` - A `true` value should be provided when you agree to use prxi-openid-connect under the current license terms. Please refer to the [License](#license) for more details.
+- `MODE` - [optional] Server mode, can be either `HTTP` or `HTTP2` (default value: `HTTP`). Note: when HTTP/2 is enabled, upstream should also support it, dynamic conversion from HTTP/2 to HTTP/1.1 is not supported.
 - `PORT` - [optional] port number to listen (default value: `3000`)
 - `HOSTNAME` - [optional] hostname to listen incoming connections on (default value: `localhost`)
 - `HOST_URL` - Public facing Host URL
@@ -32,6 +33,18 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 - `LOG_FILE_SIZE` - [optional] maximum log file size (default value: `10M`)
 - `LOG_FILE_ROTATE` - [optional] maximum number of rotated filed (default value: `5`)
 - `JWT_META_TOKEN_SECRET` - [optional] secret string to sign JWT with custom user meta attributes (if returned by the login webhook)
+
+#### TLS Settings
+
+Following environment variables allows dynamic configuration of TLS settings. For the whole list of options please refer to [https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options](https://nodejs.org/api/tls.html#tls_tls_createsecurecontext_options)
+
+All the `<property>` values will be converted from snake_case to camelCase.
+
+- `TLS_FILE_<property>` - Load file into a buffer from the provided path and set it to the `<property>` field
+- `TLS_STRING_<property>` - Set string value into `<property>` field
+- `TLS_NUMBER_<property>` - Set number value into `<property>` field
+
+**Note:** when TLS is enabled upstream server should also support secure connection. Dynamic conversion from Secure to non-Secure connection is not supported. To accept self-signed certificate of the upstream service use `NODE_EXTRA_CA_CERTS` to set additional certificate.
 
 #### OIDC settings
 - `OPENID_CONNECT_DISCOVER_URL` - discovery URL, public endpoint to fetch openid-configuration from. E.g.:
@@ -161,7 +174,7 @@ This project can be used for free of charge for:
 - Personal Uses
 - Noncommercial Organizations
 
-This project also provides **32** days of evaluation period for **commercial** products and services. After the evaluation period additional license should be obtained or project stopped from being used.
+This project also provides **30** days of evaluation period for **commercial** products and services. After the evaluation period additional license should be obtained or project stopped from being used.
 
 More can be found in [LICENSE.md](https://github.com/FireBlinkLTD/prxi-openid-connect/blob/main/LICENSE.md)
 

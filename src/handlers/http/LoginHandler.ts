@@ -1,13 +1,13 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { getConfig } from "../config/getConfig";
-import { invalidateAuthCookies, sendRedirect } from "../utils/ResponseUtils";
-import { OpenIDUtils } from "../utils/OpenIDUtils";
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { invalidateAuthCookies, sendRedirect } from "../../utils/ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
 import { Logger } from "pino";
-import getLogger from "../Logger";
+import getLogger from "../../Logger";
 import { parse } from "url";
 
-export class LoginHandler implements RequestHandlerConfig {
+export class LoginHandler implements HttpRequestHandlerConfig {
   private logger: Logger;
 
   constructor() {

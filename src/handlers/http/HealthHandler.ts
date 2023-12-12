@@ -1,9 +1,9 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { getConfig } from "../config/getConfig";
-import { sendJsonResponse } from "../utils/ResponseUtils";
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { sendJsonResponse } from "../../utils/ResponseUtils";
 
-export const HealthHandler: RequestHandlerConfig = {
+export const HealthHandler: HttpRequestHandlerConfig = {
   isMatching: (method: HttpMethod, path: string) => {
     return method === 'GET' && path === getConfig().healthPath;
   },

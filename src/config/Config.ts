@@ -3,6 +3,10 @@ import { Mapping } from "./Mapping";
 export interface Config {
   licenseConsent: boolean;
 
+  mode: 'HTTP' | 'HTTP2',
+
+  secure?: Record<string, string | number | Buffer>
+
   port: number;
   hostname?: string;
   proxyRequestTimeout?: number;

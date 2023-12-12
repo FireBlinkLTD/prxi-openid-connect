@@ -1,12 +1,12 @@
 import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, RequestHandlerConfig } from "prxi";
-import { getConfig } from "../config/getConfig";
-import { sendErrorResponse, sendRedirect, setAuthCookies } from "../utils/ResponseUtils";
-import { OpenIDUtils } from "../utils/OpenIDUtils";
-import getLogger from "../Logger";
-import { RequestUtils } from "../utils/RequestUtils";
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { sendErrorResponse, sendRedirect, setAuthCookies } from "../../utils/ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
+import getLogger from "../../Logger";
+import { RequestUtils } from "../../utils/RequestUtils";
 
-export const CallbackHandler: RequestHandlerConfig = {
+export const CallbackHandler: HttpRequestHandlerConfig = {
   isMatching: (method: HttpMethod, path: string) => {
     return method === 'GET' && path === getConfig().openid.callbackPath;
   },
@@ -16,7 +16,7 @@ export const CallbackHandler: RequestHandlerConfig = {
     let tokens = await OpenIDUtils.exchangeCode(req);
     let metaToken: string;
 
-    const cookies = RequestUtils.getCookies(req);
+    const cookies = RequestUtils.getCookies(req.headers);
     const originalPath = cookies[getConfig().cookies.names.originalPath] || '/';
     let redirectTo = `${getConfig().hostURL}${originalPath}`;
 

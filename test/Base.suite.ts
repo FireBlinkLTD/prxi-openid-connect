@@ -5,30 +5,102 @@ import { getConfig, updateConfig } from "../src/config/getConfig";
 import puppeteer, { Page } from 'puppeteer';
 import { start } from '../src/Server';
 import { Prxi } from 'prxi';
+import { readFileSync } from 'fs';
+import { resolve } from 'path';
+import { context } from '@testdeck/mocha';
+import { Console } from '../src/utils/Console';
 
 export class BaseSuite {
   private originalConfig: Config;
   protected prxi: Prxi;
 
+  constructor(protected mode: 'HTTP' | 'HTTP2' = 'HTTP', protected secure = false) {}
+
   public async before() {
+    Console.printSolidBox(`[TEST] [${this.mode}]${this.secure ? ' [secure]' : ''} ${this[context].test.title}`);
     // get original configuration
     this.originalConfig = structuredClone(getConfig());
-    this.prxi = await start();
+    this.fixConfig();
+    this.prxi = await start(true);
   }
 
   public async after() {
     // set original configuration back
     updateConfig(this.originalConfig);
-    await this.prxi?.stop();
+    try {
+      await this.prxi?.stop();
+      this.prxi = null;
+    } catch (e) {
+      console.error(e);
+    }
+    Console.printDoubleBox(`[TEST] [${this.mode}]${this.secure ? ' [secure]' : ''} ${this[context].test.title}`);
+  }
+
+  /**
+   * Modify configuration based on settings set in the constructor
+   */
+  protected fixConfig() {
+    getConfig().mode = this.mode;
+
+    const fixURL = (url: string): string => {
+      if (this.secure && this.mode === 'HTTP') {
+        return url.replace('http://localhost:7001', 'https://localhost:7002');
+      }
+
+      if (!this.secure && this.mode === 'HTTP2') {
+        return url.replace('http://localhost:7001', 'http://localhost:7003');
+      }
+
+      if (this.secure && this.mode === 'HTTP2') {
+        return url.replace('http://localhost:7001', 'https://localhost:7004');
+      }
+
+      return url;
+
+    }
+
+    getConfig().upstream = fixURL(getConfig().upstream);
+
+    if (getConfig().redirect.pageRequest.e403) {
+      getConfig().redirect.pageRequest.e403 = fixURL(getConfig().redirect.pageRequest.e403);
+    }
+    if (getConfig().redirect.pageRequest.e404) {
+      getConfig().redirect.pageRequest.e404 = fixURL(getConfig().redirect.pageRequest.e404);
+    }
+    if (getConfig().redirect.pageRequest.e500) {
+      getConfig().redirect.pageRequest.e500 = fixURL(getConfig().redirect.pageRequest.e500);
+    }
+    if (getConfig().redirect.pageRequest.e503) {
+      getConfig().redirect.pageRequest.e503 = fixURL(getConfig().redirect.pageRequest.e503);
+    }
+
+    if (this.secure) {
+      getConfig().openid.clientId = getConfig().openid.clientId + '_secure';
+
+      // update cookie settings
+      getConfig().cookies.secure = true;
+
+      // set TLS settings
+      getConfig().secure = {
+        key: readFileSync(resolve(__dirname, 'key.pem')),
+        cert: readFileSync(resolve(__dirname, 'cert.pem')),
+      }
+
+      // update urls
+
+      getConfig().hostURL = getConfig().hostURL.replace(/http:/g, 'https:');
+    } else {
+      getConfig().secure = undefined;
+    }
   }
 
   protected async reloadPrxiWith(config: Partial<Config>): Promise<void> {
-    await this.prxi.stop();
+    await this.prxi.stop(true);
     updateConfig({
-      ...this.originalConfig,
+      ...getConfig(),
       ...config,
     });
-    this.prxi = await start();
+    this.prxi = await start(true);
   }
 
   /**
@@ -61,6 +133,8 @@ export class BaseSuite {
     console.log(`[puppeteer] -> Launching browser`);
     const browser = await puppeteer.launch({
       headless: 'new',
+      ignoreHTTPSErrors: true,
+      args: [ '--ignore-certificate-errors' ]
     });
 
     try {
@@ -78,9 +152,13 @@ export class BaseSuite {
       } catch (e) {
         try {
           const path = `puppeteer-error-${Date.now()}.png`;
-          console.log(e);
-          console.log(`Error occurred while on page: ${page.url()}; Screenshot name: ${path}`);
-          await page.screenshot({ path });
+          console.log(`[puppeteer] Error occurred while on page: ${page.url()}; Screenshot name: ${path}`);
+          console.log('[puppeteer]', e);
+          try {
+            await page.screenshot({ path });
+          } catch (e) {
+            console.log('[puppeteer] Unable to create screenshot', e);
+          }
         } finally {
           throw e;
         }

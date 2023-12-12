@@ -13,8 +13,20 @@ cd bin
 bash ./0-init-keycloak.sh
 cd ..
 
+# generate keys
+yarn keygen
+
+export PATH_CERT=test/cert.pem
+export PATH_KEY=test/key.pem
+
+dev-echo-server &
+echoPID=$!
+sleep 1
+
 # run tests
 yarn test
+
+kill $echoPID
 
 # stop docker-compose
 docker-compose down

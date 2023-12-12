@@ -3,8 +3,7 @@ import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
 
-@suite()
-export class LogoutHandlerSuite extends BaseSuite {
+export class BaseLogoutHandlerSuite extends BaseSuite {
   @test()
   async logout() {
     const uri = '/api/test?q=str';
@@ -14,7 +13,7 @@ export class LogoutHandlerSuite extends BaseSuite {
       // make sure we can access the resource
       await this.navigate(page, getConfig().hostURL + uri);
       const json = await this.getJsonFromPage(page);
-      strictEqual(json.http.originalUrl, uri);
+      strictEqual(json.http.url, uri);
 
       // logout and try to access the same resource
       await this.navigate(page, getConfig().hostURL + getConfig().logoutPath);
@@ -22,5 +21,26 @@ export class LogoutHandlerSuite extends BaseSuite {
       const text = await this.getTextFromPage(page);
       strictEqual(text, '401: Unauthorized');
     });
+  }
+}
+
+@suite()
+class HttpLogoutHandlerSuite extends BaseLogoutHandlerSuite {
+  constructor() {
+    super('HTTP', false);
+  }
+}
+
+@suite()
+class HttpsLogoutHandlerSuite extends BaseLogoutHandlerSuite {
+  constructor() {
+    super('HTTP', true);
+  }
+}
+
+@suite()
+class Http2LogoutHandlerSuite extends BaseLogoutHandlerSuite {
+  constructor() {
+    super('HTTP2', true);
   }
 }

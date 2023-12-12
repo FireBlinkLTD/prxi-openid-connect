@@ -16,25 +16,3 @@ services:
           memory: 512M
     ports:
       - 8080:8080
-
-  echo-ws:
-    image: jmalloc/echo-server:0.3.6
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 128M
-    ports:
-      - 4444:8080
-
-  echo:
-    image: ealen/echo-server:0.7.0
-    deploy:
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 128M
-    ports:
-      - 3333:80

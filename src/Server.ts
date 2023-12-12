@@ -3,28 +3,47 @@ import 'dotenv/config';
 import { Prxi } from 'prxi';
 import { onShutdown } from "node-graceful-shutdown";
 
-import { getConfig } from "./config/getConfig";
+import { getConfig, getSanitizedConfig } from "./config/getConfig";
 
 import getLogger from "./Logger";
-import { CallbackHandler } from './handlers/CallbackHandler';
-import { HealthHandler } from './handlers/HealthHandler';
-import { ProxyHandler } from './handlers/ProxyHandler';
-import { errorHandler } from './handlers/ErrorHandler';
+import { CallbackHandler } from './handlers/http/CallbackHandler';
+import { HealthHandler } from './handlers/http/HealthHandler';
+import { ProxyHandler } from './handlers/http/ProxyHandler';
+import { errorHandler } from './handlers/http/ErrorHandler';
+import { http2ErrorHandler } from './handlers/http2/Http2ErrorHandler';
 
 import { OpenIDUtils } from './utils/OpenIDUtils';
-import { E404Handler } from './handlers/E404Handler';
-import { LogoutHandler } from './handlers/LogoutHandler';
-import { LoginHandler } from './handlers/LoginHandler';
+import { E404Handler } from './handlers/http/E404Handler';
+import { LogoutHandler } from './handlers/http/LogoutHandler';
+import { LoginHandler } from './handlers/http/LoginHandler';
 import { WebSocketHandler } from './handlers/WebsocketHandler';
+import { Http2HealthHandler } from './handlers/http2/Http2HealthHandler';
+import { Http2E404Handler } from './handlers/http2/Http2E404Handler';
+import { Http2LoginHandler } from './handlers/http2/Http2LoginHandler';
+import { Http2LogoutHandler } from './handlers/http2/Http2LogoutHandler';
+import { Http2CallbackHandler } from './handlers/http2/Http2CallbackHandler';
+import { Http2ProxyHandler } from './handlers/http2/Http2ProxyHandler';
+import { Debugger } from './utils/Debugger';
+import { randomUUID } from 'crypto';
+import { IncomingHttpHeaders } from 'http';
+import { constants } from 'http2';
+import { Console } from './utils/Console';
+import { inspect } from 'util';
 
 // Prepare logger
 
-let prxi: Prxi;
-export const start = async (): Promise<Prxi> => {
+
+
+/**
+ * Start server
+ * @param testMode
+ * @returns
+ */
+export const start = async (testMode = false): Promise<Prxi> => {
   const logger = getLogger('Server');
   const config = getConfig();
 
-  logger.child({config}).debug('Configuration');
+  logger.child({config: getSanitizedConfig()}).debug('Configuration');
 
   if (!config.licenseConsent) {
     logger.error('###############################################################');
@@ -39,21 +58,104 @@ export const start = async (): Promise<Prxi> => {
     throw new Error('Unable to start, license consent is not provided.');
   }
 
+  const isDebug = config.logLevel.toLowerCase() === 'debug';
+
+  // Before request hook
+  const beforeRequest = (mode: string, method: string, path: string, headers: IncomingHttpHeaders, context: Record<string, any>) => {
+    const requestId = (headers['x-correlation-id'] || headers['x-trace-id'] || headers['x-request-id'] || randomUUID()).toString();
+    context.requestId = requestId;
+    context.debugger = new Debugger('Root', context.sessionId, requestId, isDebug);
+    logger.child({ requestId, _: {mode, path: path.split('?')[0], method} }).info('Processing request - start');
+  }
+
+  // After request hook
+  const afterRequest = (mode: string, method: string, path: string, context: Record<string, any>) => {
+    path = path.split('?')[0];
+    logger.child({
+      requestId: context.requestId,
+      _: {mode, path, method}
+    }).info('Processing request - finished');
+    if (context.debugger.enabled) {
+      Console.printSolidBox(`[REQUEST] [${mode}] ${method}: ${path}`);
+      console.log(context.debugger.toString());
+      Console.printDoubleBox(`[REQUEST] [${mode}] ${method}: ${path}`);
+    }
+  }
+
   // Prepare proxy configuration
-  prxi = new Prxi({
-    logInfo: (message: any, ...params: any[]) => {
-      logger.child({params}).debug(message);
-    },
-    logError: (message: any, ...params: any[]) => {
-      /* istanbul ignore next */
-      logger.child({params}).error(message);
+  const prxi = new Prxi({
+    mode: config.mode,
+    secure: config.secure,
+    log: {
+      debug(context, message, params) {
+        if (context.debugger) {
+          context.debugger.debug(message, params);
+        } else {
+          logger.child({_: params}).debug(message);
+        }
+      },
+      info(context, message, params) {
+        if (context.debugger) {
+          context.debugger.info(message, params);
+        } else {
+          logger.child({_: params}).info(message);
+        }
+      },
+      error(context, message, error, params) {
+        if (context.debugger) {
+          context.debugger.error(message, error, params);
+        } else {
+          logger.child({_: params, error}).error(message);
+        }
+      }
     },
     port: config.port,
     hostname: config.hostname,
     errorHandler,
+    http2ErrorHandler,
     proxyRequestTimeout: config.proxyRequestTimeout,
     responseHeaders: config.headers.response,
     proxyRequestHeaders: config.headers.request,
+    on: {
+      beforeHTTPRequest(req, res, ctx) {
+        beforeRequest('HTTP/1.1', req.method, req.url, req.headers, ctx);
+      },
+
+      afterHTTPRequest(req, res, ctx) {
+        afterRequest('HTTP/1.1', req.method, req.url, ctx);
+      },
+
+      upgrade(req, socket, head, ctx) {
+        beforeRequest('WS', req.method, req.url, req.headers, ctx);
+      },
+
+      afterUpgrade(req, socket, head, ctx) {
+        afterRequest('WS', req.method, req.url, ctx);
+      },
+
+      beforeHTTP2Session(session, context) {
+        context.sessionId = randomUUID();
+        context.debugger = new Debugger('Root', context.sessionId, undefined, isDebug);
+      },
+
+      beforeHTTP2Request(stream, headers, ctx) {
+        beforeRequest(
+          'HTTP/2',
+          headers[constants.HTTP2_HEADER_METHOD].toString(),
+          headers[constants.HTTP2_HEADER_PATH].toString(),
+          headers,
+          ctx,
+        );
+      },
+
+      afterHTTP2Request(stream, headers, ctx) {
+        afterRequest(
+          'HTTP/2',
+          headers[constants.HTTP2_HEADER_METHOD].toString(),
+          headers[constants.HTTP2_HEADER_PATH].toString(),
+          ctx);
+      },
+    },
     upstream: [
       {
         target: config.upstream,
@@ -65,6 +167,14 @@ export const start = async (): Promise<Prxi> => {
           new ProxyHandler(),
           E404Handler,
         ],
+        http2RequestHandlers: [
+          Http2HealthHandler,
+          new Http2LoginHandler(),
+          new Http2LogoutHandler(),
+          Http2CallbackHandler,
+          new Http2ProxyHandler(),
+          Http2E404Handler,
+        ],
         webSocketHandlers: [
           new WebSocketHandler()
         ],
@@ -74,14 +184,16 @@ export const start = async (): Promise<Prxi> => {
 
   await OpenIDUtils.init();
 
-  logger.child({config}).info('Starting listening connections');
+  logger.info('Starting listening connections');
   await prxi.start();
 
   /* istanbul ignore next */
-  onShutdown(async () => {
-    logger.info('Gracefully shutting down the server');
-    await prxi.stop();
-  });
+  if (!testMode) {
+    onShutdown(async () => {
+      logger.info('Gracefully shutting down the server');
+      await prxi.stop();
+    });
+  }
 
   return prxi;
 }

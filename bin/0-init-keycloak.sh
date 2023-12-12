@@ -16,6 +16,7 @@ KC_TEST_REALM=test
 KC_TEST_ROLE=test_role
 
 KC_TEST_CLIENT=$OPENID_CLIENT_ID
+KC_TEST_CLIENT_SECURE=${OPENID_CLIENT_ID}_secure
 KC_TEST_CLIENT_SECRET=$OPENID_CLIENT_SECRET
 
 ##################
@@ -113,6 +114,42 @@ EOF
 # Create client with client secret
 echo "-> Creating /tmp/client_config.json"
 echo "$KC_CLIENT_CONFIG" > /tmp/client_config.json
+docker cp /tmp/client_config.json $KC_CONTAINER_NAME:/tmp/client_config.json
+rm /tmp/client_config.json
+echo "-> Using /tmp/client_config.json to create new client"
+kc create clients -r $KC_TEST_REALM -f /tmp/client_config.json
+
+
+KC_CLIENT_SECURE_CONFIG=$(cat << EOF
+  {
+    "clientId": "$KC_TEST_CLIENT_SECURE",
+    "rootUrl": "https://localhost:3000",
+    "baseUrl": "/",
+    "surrogateAuthRequired": false,
+    "enabled": true,
+    "alwaysDisplayInConsole": false,
+    "clientAuthenticatorType": "client-secret",
+    "secret": "$KC_TEST_CLIENT_SECRET",
+    "redirectUris": ["/_prxi_/callback"],
+    "webOrigins": ["+"],
+    "bearerOnly": false,
+    "consentRequired": false,
+    "standardFlowEnabled": true,
+    "implicitFlowEnabled": false,
+    "directAccessGrantsEnabled": false,
+    "serviceAccountsEnabled": false,
+    "publicClient": false,
+    "frontchannelLogout": false,
+    "protocol": "openid-connect",
+    "defaultClientScopes": ["web-origins","role_list","roles","profile","email"],
+    "optionalClientScopes": ["address","phone","offline_access","microprofile-jwt"]
+  }
+EOF
+)
+
+# Create client with client secret
+echo "-> Creating /tmp/client_config.json"
+echo "$KC_CLIENT_SECURE_CONFIG" > /tmp/client_config.json
 docker cp /tmp/client_config.json $KC_CONTAINER_NAME:/tmp/client_config.json
 rm /tmp/client_config.json
 echo "-> Using /tmp/client_config.json to create new client"
