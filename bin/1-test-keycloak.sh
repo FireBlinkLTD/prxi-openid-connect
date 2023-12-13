@@ -24,6 +24,7 @@ echoPID=$!
 sleep 1
 
 # run tests
+export NODE_ENV=test
 yarn test
 
 kill $echoPID

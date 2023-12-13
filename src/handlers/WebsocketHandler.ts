@@ -1,13 +1,13 @@
-import { IncomingMessage } from "http";
-import { Socket } from "net";
-import { ProxyRequest, WebSocketHandlerConfig, WebSocketProxyCancelRequest } from "prxi";
-import { Mapping } from "../config/Mapping";
-import { getConfig } from "../config/getConfig";
-import { RequestUtils } from "../utils/RequestUtils";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { JWTVerificationResult, OpenIDUtils } from "../utils/OpenIDUtils";
-import { Context } from "mocha";
-import { Debugger } from "../utils/Debugger";
+import { IncomingMessage } from 'node:http';
+import { Socket } from 'net';
+import { ProxyRequest, WebSocketHandlerConfig, WebSocketProxyCancelRequest } from 'prxi';
+import { Mapping } from '../config/Mapping';
+import { getConfig } from '../config/getConfig';
+import { RequestUtils } from '../utils/RequestUtils';
+import { JwtPayload, verify } from 'jsonwebtoken';
+import { JWTVerificationResult, OpenIDUtils } from '../utils/OpenIDUtils';
+import { Context } from 'mocha';
+import { Debugger } from '../utils/Debugger';
 
 export class WebSocketHandler implements WebSocketHandlerConfig {
   /**

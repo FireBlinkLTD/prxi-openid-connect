@@ -1,13 +1,14 @@
-import { IncomingMessage, ServerResponse } from "http";
-import { ErrorHandler } from "prxi";
-import { sendErrorResponse, sendRedirect } from "../../utils/ResponseUtils";
-import getLogger from "../../Logger";
-import { getConfig } from "../../config/getConfig";
+import { IncomingMessage, ServerResponse } from 'node:http';
+import { ErrorHandler } from 'prxi';
+import { sendErrorResponse, sendRedirect } from '../../utils/ResponseUtils';
+import { getConfig } from '../../config/getConfig';
+import { Context } from '../../types/Context';
 
-export const errorHandler: ErrorHandler = async (req: IncomingMessage, res: ServerResponse, err: Error) => {
+export const errorHandler: ErrorHandler = async (req: IncomingMessage, res: ServerResponse, err: Error, context: Context) => {
+  const _ = context.debugger.child('errorHandler');
+
   console.log(err);
-  const logger = getLogger('ErrorHandler');
-  logger.child({ error: err.message }).error('Unexpected error occurred');
+  _.error('Unexpected error occurred', err);
 
   let code = 500;
   let message = 'Unexpected error occurred';
@@ -20,10 +21,10 @@ export const errorHandler: ErrorHandler = async (req: IncomingMessage, res: Serv
   }
 
   if (redirectTo) {
-    sendRedirect(req, res, redirectTo);
+    sendRedirect(_, req, res, redirectTo);
     return;
   }
 
-  await sendErrorResponse(req, code, message, res);
+  await sendErrorResponse(_, req, code, message, res);
 }
 

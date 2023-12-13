@@ -1,31 +1,29 @@
-import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
-import { getConfig } from "../../config/getConfig";
-import { invalidateAuthCookies, sendRedirect } from "../../utils/ResponseUtils";
-import { OpenIDUtils } from "../../utils/OpenIDUtils";
-import { Logger } from "pino";
-import getLogger from "../../Logger";
-import { parse } from "url";
+import { IncomingMessage, ServerResponse } from 'node:http';
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from 'prxi';
+import { getConfig } from '../../config/getConfig';
+import { invalidateAuthCookies, sendRedirect } from '../../utils/ResponseUtils';
+import { OpenIDUtils } from '../../utils/OpenIDUtils';
+import { parse } from 'url';
+import { Context } from '../../types/Context';
 
 export class LoginHandler implements HttpRequestHandlerConfig {
-  private logger: Logger;
 
-  constructor() {
-    this.logger = getLogger('LoginHandler')
+  /**
+   * @inheritdoc
+   */
+  isMatching(method: HttpMethod, path: string, context: Context): boolean {
+    const _ = context.debugger.child('LoginHandler -> isMatching', {method, path});
+    const match = method === 'GET' && path === getConfig().loginPath;
+    _.debug('Matching result', {match});
+
+    return match;
   }
 
   /**
    * @inheritdoc
    */
-  public isMatching(method: HttpMethod, path: string): boolean {
-    return method === 'GET' && path === getConfig().loginPath;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest): Promise<void> {
-    this.logger.info('Handle login request');
+  async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context): Promise<void> {
+    const _ = context.debugger.child('LoginHandler -> handle', {method, path});
 
     const { redirectTo } = parse(req.url, true).query;
     if (redirectTo) {
@@ -39,6 +37,6 @@ export class LoginHandler implements HttpRequestHandlerConfig {
       invalidateAuthCookies(res);
     }
 
-    await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
+    await sendRedirect(_, req, res, OpenIDUtils.getAuthorizationUrl());
   }
 }

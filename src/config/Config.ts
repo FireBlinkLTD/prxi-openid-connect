@@ -1,4 +1,4 @@
-import { Mapping } from "./Mapping";
+import { Mapping } from './Mapping';
 
 export interface Config {
   licenseConsent: boolean;

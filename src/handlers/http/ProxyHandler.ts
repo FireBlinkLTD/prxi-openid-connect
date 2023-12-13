@@ -1,23 +1,15 @@
-import { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
-import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies } from "../../utils/ResponseUtils";
-import { getConfig } from "../../config/getConfig";
-import { Mapping } from "../../config/Mapping";
-import { JWTVerificationResult, OpenIDUtils } from "../../utils/OpenIDUtils";
+import { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from 'node:http';
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from 'prxi';
+import { invalidateAuthCookies, sendErrorResponse, sendRedirect, setAuthCookies } from '../../utils/ResponseUtils';
+import { getConfig } from '../../config/getConfig';
+import { Mapping } from '../../config/Mapping';
+import { JWTVerificationResult, OpenIDUtils } from '../../utils/OpenIDUtils';
 import { JwtPayload, verify } from 'jsonwebtoken';
-import getLogger from "../../Logger";
-import { Logger } from "pino";
-import { RequestUtils } from "../../utils/RequestUtils";
-import { Context } from "../../types/Context";
-import { Debugger } from "../../utils/Debugger";
+import { RequestUtils } from '../../utils/RequestUtils';
+import { Context } from '../../types/Context';
+import { Debugger } from '../../utils/Debugger';
 
 export class ProxyHandler implements HttpRequestHandlerConfig {
-  private logger: Logger;
-
-  constructor() {
-    this.logger = getLogger('ProxyHandler')
-  }
-
   /**
    * @inheritdoc
    */
@@ -25,7 +17,8 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     const _ = context.debugger.child('ProxyHandler -> isMatching', {method, path});
 
     _.debug('Looking for public matches');
-    context.mapping = this.findMatchingMapping(
+    context.mapping = RequestUtils.findMapping(
+      _,
       getConfig().mappings.public,
       method,
       path
@@ -39,7 +32,8 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     }
 
     _.debug('Looking for API matches');
-    context.mapping = this.findMatchingMapping(
+    context.mapping = RequestUtils.findMapping(
+      _,
       getConfig().mappings.api,
       method,
       path
@@ -53,7 +47,8 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     }
 
     _.debug('Looking for page matches');
-    context.mapping = this.findMatchingMapping(
+    context.mapping = RequestUtils.findMapping(
+      _,
       getConfig().mappings.pages,
       method,
       path
@@ -73,7 +68,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
    * @inheritdoc
    */
   async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: string, path: string, context: Context): Promise<void> {
-    const _ = context.debugger.child('ProxyHandler -> handle', {method, path, context});
+    const _ = context.debugger.child('ProxyHandler -> handle', {method, path, context, headers: req.headers});
     const cookies = RequestUtils.getCookies(req.headers);
     _.debug('-> RequestUtils.getCookies', { cookies });
 
@@ -233,7 +228,12 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     context: Context,
     metaPayload: Record<string, any>,
   ): Promise<boolean> {
-    this.logger.child({cookies: Object.keys(cookies), path, method, context}).debug('Handling authentication flow');
+    _.debug('Handling authentication flow', {
+      cookies,
+      path,
+      method,
+      context
+    });
 
     let accessToken = context.accessToken = cookies[getConfig().cookies.names.accessToken];
     let idToken = context.idToken = cookies[getConfig().cookies.names.idToken];
@@ -313,11 +313,9 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
 
       if (context.mapping.auth.required) {
         if (context.page) {
-          _.debug('Auth required, sending redirect to the auth page');
-          await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
+          await sendRedirect(_, req, res, OpenIDUtils.getAuthorizationUrl());
         } else {
-          _.debug('Auth required, sending 401 error response');
-          await sendErrorResponse(req, 401, 'Unauthorized', res);
+          await sendErrorResponse(_, req, 401, 'Unauthorized', res);
         }
 
         _.debug('Access token is missing but mapping requires auth');
@@ -335,11 +333,9 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
       invalidateAuthCookies(res);
 
       if (context.page) {
-        _.debug('Sending redirect to the auth page');
-        await sendRedirect(req, res, OpenIDUtils.getAuthorizationUrl());
+        await sendRedirect(_, req, res, OpenIDUtils.getAuthorizationUrl());
       } else {
-        _.debug('Sending 401 error');
-        sendErrorResponse(req, 401, 'Unauthorized', res);
+        sendErrorResponse(_, req, 401, 'Unauthorized', res);
       }
 
       _.debug('Access token is invalid but mapping requires auth');
@@ -372,13 +368,9 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
 
     if (!claims) {
       if (context.page && getConfig().redirect.pageRequest.e403) {
-        _.debug('No claims extracted, sending redirect to custom 403 page', {
-          redirectTo: getConfig().redirect.pageRequest.e403,
-        });
-        sendRedirect(req, res, getConfig().redirect.pageRequest.e403);
+        sendRedirect(_, req, res, getConfig().redirect.pageRequest.e403);
       } else {
-        _.debug('No claims extracted, sending 403 response');
-        sendErrorResponse(req, 403, 'Forbidden', res);
+        sendErrorResponse(_, req, 403, 'Forbidden', res);
       }
 
       return true;
@@ -388,35 +380,6 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     _.debug('Access allowed', { context });
 
     return false;
-  }
-
-  /**
-   * Check if request is matching method
-   * @param mappings
-   * @param method
-   * @param path
-   * @returns
-   */
-  private findMatchingMapping(mappings: Mapping[], method: HttpMethod, path: string): Mapping | null {
-    for (const mapping of mappings) {
-      const matchMethod = !mapping.methods || mapping.methods.find(m => m === method);
-      if (matchMethod && mapping.pattern.exec(path)) {
-        let exclude = false;
-        for (const excludeMapping of mapping.exclude) {
-          const excludeMethodMatch = !mapping.methods || mapping.methods.find(m => m === method);
-          exclude = excludeMethodMatch && !!excludeMapping.pattern.exec(path);
-          if (exclude) {
-            continue;
-          }
-        }
-
-        if (!exclude) {
-          return mapping;
-        }
-      }
-    }
-
-    return null;
   }
 }
 

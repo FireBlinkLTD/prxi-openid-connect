@@ -1,6 +1,6 @@
-import { IncomingHttpHeaders } from "http";
-import { ServerHttp2Stream, constants } from "http2";
-import { Debugger } from "./Debugger";
+import { IncomingHttpHeaders } from 'node:http';
+import { ServerHttp2Stream, constants } from 'node:http2';
+import { Debugger } from './Debugger';
 
 const emptyObj = {};
 
@@ -13,6 +13,11 @@ const emptyObj = {};
  * @returns
  */
 export const sendRedirect = (_: Debugger, stream: ServerHttp2Stream, headers: IncomingHttpHeaders, url: string, outgoingHeaders?: Record<string, string | string[]>): void => {
+  _.debug('Sending redirect', {
+    redirectTo: url,
+    outgoingHeaders,
+  });
+
   if (headers['hx-boosted'] === 'true') {
     _.debug('HTMX boosted request detected, sending hx-redirect header', { url });
     sendJsonResponse(
@@ -48,7 +53,7 @@ export const sendRedirect = (_: Debugger, stream: ServerHttp2Stream, headers: In
  * @returns
  */
 export const sendErrorResponse = async (_: Debugger, stream: ServerHttp2Stream, headers: IncomingHttpHeaders, statusCode: number, message: string, responseHeaders?: Record<string, string | string[]>): Promise<void>  => {
-  _.debug('Setting error response', {message, statusCode});
+  _.debug('Sending error response', {message, statusCode, responseHeaders});
   if (headers.accept === 'application/json') {
     return await sendJsonResponse(_, statusCode, {
       error: true,
@@ -70,7 +75,7 @@ export const sendErrorResponse = async (_: Debugger, stream: ServerHttp2Stream, 
  * @param stream
  */
 export const sendJsonResponse = async (_: Debugger, statusCode: number, json: any, stream: ServerHttp2Stream, headers?: Record<string, string | string[]>): Promise<void> => {
-  _.debug('Setting JSON response');
+  _.debug('Sending JSON response', { json });
   await sendResponse(_, statusCode, 'application/json', JSON.stringify(json), stream, headers);
 }
 
@@ -82,7 +87,7 @@ export const sendJsonResponse = async (_: Debugger, statusCode: number, json: an
  * @param resp
  */
 const sendResponse = async (_: Debugger, statusCode: number, contentType: string, content: any, stream: ServerHttp2Stream, headers?: Record<string, string | string[]>): Promise<void> => {
-  _.debug('Setting response', { content, statusCode, headers, contentType });
+  _.debug('Sending response', { content, statusCode, headers, contentType });
   stream.respond({
     [constants.HTTP2_HEADER_STATUS]: statusCode,
     'content-type': contentType,

@@ -1,23 +1,29 @@
-import { IncomingMessage, ServerResponse } from "http";
-import { ProxyRequest, HttpRequestHandlerConfig } from "prxi";
-import { sendErrorResponse, sendRedirect } from "../../utils/ResponseUtils";
-import getLogger from "../../Logger";
-import { getConfig } from "../../config/getConfig";
+import { IncomingMessage, ServerResponse } from 'node:http';
+import { ProxyRequest, HttpRequestHandlerConfig } from 'prxi';
+import { sendErrorResponse, sendRedirect } from '../../utils/ResponseUtils';
+import { getConfig } from '../../config/getConfig';
+import { Context } from '../../types/Context';
 
 export const E404Handler: HttpRequestHandlerConfig = {
-  isMatching: () => {
+  /**
+   * @inheritdoc
+   */
+  isMatching() {
     return true;
   },
 
-  handle: async (req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: string, path: string) => {
-    const logger = getLogger('E404Handler');
-    logger.child({ method, path }).error('Request handler not found');
+  /**
+   * @inheritdoc
+   */
+  async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: string, path: string, context: Context) {
+    const _ = context.debugger.child('E404Handler -> handle', {method, path});
+    _.info('Request handler not found', { method, path });
 
     if (getConfig().redirect.pageRequest.e404) {
-      sendRedirect(req, res, getConfig().redirect.pageRequest.e404);
+      sendRedirect(_, req, res, getConfig().redirect.pageRequest.e404);
       return;
     }
 
-    await sendErrorResponse(req, 404, 'Not found', res);
+    await sendErrorResponse(_, req, 404, 'Not found', res);
   }
 }

@@ -1,10 +1,10 @@
-import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from "prxi";
-import { getConfig } from "../../config/getConfig";
-import { sendRedirect } from "../../utils/Http2ResponseUtils";
-import { OpenIDUtils } from "../../utils/OpenIDUtils";
-import { ServerHttp2Stream, IncomingHttpHeaders, constants } from "http2";
-import { prepareInvalidatedAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
-import { Context } from "../../types/Context";
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from 'prxi';
+import { getConfig } from '../../config/getConfig';
+import { sendRedirect } from '../../utils/Http2ResponseUtils';
+import { OpenIDUtils } from '../../utils/OpenIDUtils';
+import { ServerHttp2Stream, IncomingHttpHeaders, constants } from 'node:http2';
+import { prepareInvalidatedAuthCookies, prepareSetCookies } from '../../utils/ResponseUtils';
+import { Context } from '../../types/Context';
 
 const emptyObj = {};
 
@@ -14,10 +14,10 @@ export class Http2LoginHandler implements Http2RequestHandlerConfig {
    */
   public isMatching(method: HttpMethod, path: string, context: Context): boolean {
     const _ = context.debugger.child('Http2LoginHandler -> isMatching', {method, path});
-    const matching = method === 'GET' && path === getConfig().loginPath;
-    _.debug('Matching', {matching});
+    const match = method === 'GET' && path === getConfig().loginPath;
+    _.debug('Matching result', {match});
 
-    return matching;
+    return match;
   }
 
   /**
@@ -41,10 +41,6 @@ export class Http2LoginHandler implements Http2RequestHandlerConfig {
     }));
 
     const authURL = OpenIDUtils.getAuthorizationUrl();
-    _.debug('Redirecting', {
-      redirectTo: authURL,
-      cookiesToSet: cookies,
-    })
     sendRedirect(_, stream, headers, authURL, {
       'Set-Cookie': cookies,
     });

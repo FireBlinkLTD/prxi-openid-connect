@@ -1,47 +1,45 @@
-import { IncomingMessage, ServerResponse } from "http";
-import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
-import { getConfig } from "../../config/getConfig";
-import { invalidateAuthCookies, sendRedirect } from "../../utils/ResponseUtils";
-import { OpenIDUtils } from "../../utils/OpenIDUtils";
-import { Logger } from "pino";
-import getLogger from "../../Logger";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { RequestUtils } from "../../utils/RequestUtils";
+import { IncomingMessage, ServerResponse } from 'node:http';
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from 'prxi';
+import { getConfig } from '../../config/getConfig';
+import { invalidateAuthCookies, sendRedirect } from '../../utils/ResponseUtils';
+import { OpenIDUtils } from '../../utils/OpenIDUtils';
+import { JwtPayload, verify } from 'jsonwebtoken';
+import { RequestUtils } from '../../utils/RequestUtils';
+import { Context } from '../../types/Context';
+import { Debugger } from '../../utils/Debugger';
 
 export class LogoutHandler implements HttpRequestHandlerConfig {
-  private logger: Logger;
+  /**
+   * @inheritdoc
+   */
+  isMatching(method: HttpMethod, path: string, context: Context): boolean {
+    const _ = context.debugger.child('LogoutHandler -> isMatching', {method, path});
+    const match = method === 'GET' && path === getConfig().logoutPath;
+    _.debug('Matching result', {match});
 
-  constructor() {
-    this.logger = getLogger('LogoutHandler')
+    return match;
   }
 
   /**
    * @inheritdoc
    */
-  public isMatching(method: HttpMethod, path: string): boolean {
-    return method === 'GET' && path === getConfig().logoutPath;
-  }
-
-  /**
-   * @inheritdoc
-   */
-  public async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest): Promise<void> {
-    this.logger.info('Handle logout request');
+  async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context): Promise<void> {
+    const _ = context.debugger.child('LogoutHandler -> handle', {method, path});
     invalidateAuthCookies(res);
-    await this.handleWebhook(req);
+    await this.handleWebhook(_, req);
 
-    await sendRedirect(req, res, OpenIDUtils.getEndSessionUrl());
+    await sendRedirect(_, req, res, OpenIDUtils.getEndSessionUrl());
   }
 
   /**
    * Handle logout webhook request if configured
    * @param req
    */
-  private async handleWebhook(req: IncomingMessage): Promise<void> {
+  private async handleWebhook(_: Debugger, req: IncomingMessage): Promise<void> {
     if (getConfig().webhook.logout) {
-      this.logger.child({
+      _.debug('Making a webhook request upon logout', {
         webhookURL: getConfig().webhook.logout
-      }).info('Making a webhook request upon logout');
+      });
 
       const cookies = RequestUtils.getCookies(req.headers);
       let metaPayload: Record<string, any> = null;
@@ -70,7 +68,7 @@ export class LogoutHandler implements HttpRequestHandlerConfig {
       });
 
       if (!resp.ok) {
-        this.logger.child({status: resp.status}).error('Logout webhook request failed');
+        _.error('Logout webhook request failed', null, { statusCode: resp.status });
         throw new Error('Unable to make a logout webhook request');
       }
     }

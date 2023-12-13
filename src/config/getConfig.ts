@@ -1,28 +1,29 @@
-import { prepareMappings } from "./Mapping";
-import { Config } from "./Config";
-import { readFileSync } from "fs";
-
-let config: Config;
+import { prepareMappings } from './Mapping';
+import { Config } from './Config';
+import { readFileSync } from 'node:fs';
 
 /**
- * Convert snake_case value to camelCase
+ * Convert snake_case to camelCase
  * @param str
  * @returns
  */
-const snakeToCamelCase = (str: string): string => {
-  return str.toLowerCase().replace(/([-_][a-z])/g, (group) => {
-    return group
-      .toUpperCase()
-      .replace('-', '')
-      .replace('_', '')
-  });
+export const snakeToCamelCase = (str: string) => {
+  return str.toLowerCase().replace(
+    /(_\w)/g,
+    (m: string) => {
+      return m.toUpperCase().substring(1);
+    }
+  );
 }
+
+
+let config: Config;
 
 /**
  * Get TLS secure settings
  * @returns
  */
-const getSecureSettings = (): Record<string, string | number | Buffer> | undefined => {
+export const getSecureSettings = (): Record<string, string | number | Buffer> | undefined => {
   const secure: Record<string, string | number | Buffer>  = {};
 
   for (const key in process.env) {
@@ -40,7 +41,7 @@ const getSecureSettings = (): Record<string, string | number | Buffer> | undefin
     }
 
     if (key.toUpperCase().indexOf('TLS_NUMBER_') === 0) {
-      const propName = snakeToCamelCase(key.toUpperCase().substring('TLS_FILE_'.length));
+      const propName = snakeToCamelCase(key.toUpperCase().substring('TLS_NUMBER_'.length));
       secure[propName] = +process.env[key];
       continue;
     }

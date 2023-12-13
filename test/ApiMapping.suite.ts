@@ -38,6 +38,19 @@ class BaseApiMappingSuite extends BaseSuite {
   }
 
   @test()
+  async exclude() {
+    const uri = '/api/exclude/test';
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+      await this.navigate(page, getConfig().hostURL + uri);
+
+      const url = page.url();
+      ok(url.indexOf(getConfig().redirect.pageRequest.e404) === 0, `Actual URL: ${url}; Expected URL: ${getConfig().redirect.pageRequest.e404}`);
+    });
+  }
+
+  @test()
   async removePrxiCookies() {
     const uri = '/api/test?q=str';
 

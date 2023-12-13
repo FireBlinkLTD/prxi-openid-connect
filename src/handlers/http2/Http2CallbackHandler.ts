@@ -1,22 +1,28 @@
-import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from "prxi";
-import { getConfig } from "../../config/getConfig";
-import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
-import { OpenIDUtils } from "../../utils/OpenIDUtils";
-import { RequestUtils } from "../../utils/RequestUtils";
-import { ServerHttp2Stream, IncomingHttpHeaders, constants } from "node:http2";
-import { prepareAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
-import { Context } from "../../types/Context";
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from 'prxi';
+import { getConfig } from '../../config/getConfig';
+import { sendErrorResponse, sendRedirect } from '../../utils/Http2ResponseUtils';
+import { OpenIDUtils } from '../../utils/OpenIDUtils';
+import { RequestUtils } from '../../utils/RequestUtils';
+import { ServerHttp2Stream, IncomingHttpHeaders, constants } from 'node:http2';
+import { prepareAuthCookies, prepareSetCookies } from '../../utils/ResponseUtils';
+import { Context } from '../../types/Context';
 
 export const Http2CallbackHandler: Http2RequestHandlerConfig = {
-  isMatching: (method: HttpMethod, path: string, context: Context) => {
+  /**
+   * @inheritdoc
+   */
+  isMatching(method: HttpMethod, path: string, context: Context) {
     const _ = context.debugger.child('Http2CallbackHandler -> isMatching', {method, path});
     const match = method === 'GET' && path === getConfig().openid.callbackPath;
-    _.debug('Match check result', {match})
+    _.debug('Matching result', { match })
 
     return match;
   },
 
-  handle: async (stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) => {
+  /**
+   * @inheritdoc
+   */
+  async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
     const _ = context.debugger.child('Http2CallbackHandler -> handle', {method, path});
 
     let tokens = await OpenIDUtils.exchangeCode({
@@ -27,7 +33,7 @@ export const Http2CallbackHandler: Http2RequestHandlerConfig = {
     let metaToken: string;
 
     const cookies = RequestUtils.getCookies(headers);
-    _.debug('-> RequestUtils.getCookies()', { tokens });
+    _.debug('-> RequestUtils.getCookies()', { cookies });
     const originalPath = cookies[getConfig().cookies.names.originalPath] || '/';
     let redirectTo = `${getConfig().hostURL}${originalPath}`;
 
@@ -49,7 +55,7 @@ export const Http2CallbackHandler: Http2RequestHandlerConfig = {
       });
 
       if (!resp.ok) {
-        _.error('Login webhook request failed', null, { resp });
+        _.error('Login webhook request failed', null, { statusCode: resp.status });
         throw new Error('Unable to make a login webhook request');
       }
 
@@ -65,14 +71,8 @@ export const Http2CallbackHandler: Http2RequestHandlerConfig = {
       if (result.reject) {
         _.info('Webhook rejected the request');
         if (getConfig().redirect.pageRequest.e403) {
-          _.debug('Sending redirect response', {
-            url: getConfig().redirect.pageRequest.e403,
-          });
           sendRedirect(_, stream, headers, getConfig().redirect.pageRequest.e403);
         } else {
-          _.debug('Sending 403 response', {
-            reason: result.reason || 'Forbidden',
-          });
           sendErrorResponse(_, stream, headers, 403, result.reason || 'Forbidden');
         }
 
@@ -80,7 +80,7 @@ export const Http2CallbackHandler: Http2RequestHandlerConfig = {
       }
 
       if (result.meta) {
-        _.debug('Webhook returned custom user attributes');
+        _.debug('Webhook returned custom user attributes', { meta: result.meta });
         metaToken = OpenIDUtils.prepareMetaToken(result.meta);
       }
 
@@ -105,10 +105,6 @@ export const Http2CallbackHandler: Http2RequestHandlerConfig = {
     }
 
     const cookiesToSet = prepareSetCookies(prepareAuthCookies(tokens, metaToken));
-    _.debug('Sending redirect', {
-      redirectTo,
-      cookiesToSet,
-    });
     sendRedirect(_, stream, headers, redirectTo, {
       'Set-Cookie': cookiesToSet,
     });

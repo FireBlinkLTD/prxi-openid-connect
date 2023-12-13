@@ -1,8 +1,9 @@
 import { IncomingMessage, ServerResponse } from "http"
-import { getConfig } from "../config/getConfig";
-import { serialize } from "cookie";
-import { TokenSet } from "openid-client";
-import getLogger from "../Logger";
+import { getConfig } from '../config/getConfig';
+import { serialize } from 'cookie';
+import { TokenSet } from 'openid-client';
+import getLogger from '../Logger';
+import { Debugger } from './Debugger';
 
 let domain: string;
 
@@ -136,22 +137,29 @@ const setCookies = (resp: ServerResponse, cookies: Record<string, {value: string
 }
 
 /**
- * Send redirect
+ * Send redirect response
+ * @param _
+ * @param req
  * @param resp
  * @param url
+ * @returns
  */
-export const sendRedirect = async (req: IncomingMessage, resp: ServerResponse, url: string): Promise<void> => {
+export const sendRedirect = async (_: Debugger, req: IncomingMessage, resp: ServerResponse, url: string): Promise<void> => {
+  _.debug('Sending redirect', {
+    redirectTo: url,
+    outgoingHeaders: resp.getHeaders(),
+  });
+
   if (req.headers['hx-boosted'] === 'true') {
-    getLogger('ResponseUtils').child({ url }).debug('HTMX boosted request detected, sending hx-redirect header');
+    _.debug('HTMX boosted request detected, sending hx-redirect header', { url });
     resp.setHeader('hx-redirect', url);
-    await sendJsonResponse(200, {
+    await sendJsonResponse(_, 200, {
       redirectTo: url
     }, resp);
 
     return;
   }
 
-  getLogger('ResponseUtils').child({ url }).debug('Sending redirect');
   resp.statusCode = 307;
   resp.setHeader('Location', url);
   resp.end();
@@ -159,15 +167,16 @@ export const sendRedirect = async (req: IncomingMessage, resp: ServerResponse, u
 
 /**
  * Send error response based on the "Accept" header
+ * @param _
  * @param req
  * @param statusCode
  * @param message
  * @param resp
  */
-export const sendErrorResponse = async (req: IncomingMessage, statusCode: number, message: string, resp: ServerResponse): Promise<void>  => {
-  getLogger('ResponseUtils').child({message, statusCode}).debug('Setting error response');
+export const sendErrorResponse = async (_: Debugger, req: IncomingMessage, statusCode: number, message: string, resp: ServerResponse): Promise<void>  => {
+  _.debug('Sending error response', {message, statusCode, responseHeaders: resp.getHeaders()});
   if (req.headers.accept === 'application/json') {
-    return await sendJsonResponse(statusCode, {
+    return await sendJsonResponse(_, statusCode, {
       error: true,
       details: {
         message: message,
@@ -176,29 +185,31 @@ export const sendErrorResponse = async (req: IncomingMessage, statusCode: number
     }, resp);
   }
 
-  await sendResponse(statusCode, 'text/plain', `${statusCode}: ${message}`, resp);
+  await sendResponse(_, statusCode, 'text/plain', `${statusCode}: ${message}`, resp);
 }
 
 /**
  * Send JSON response
+ * @parma _
  * @param statusCode
  * @param json
  * @param resp
  */
-export const sendJsonResponse = async (statusCode: number, json: any, resp: ServerResponse): Promise<void> => {
-  getLogger('ResponseUtils').debug('Setting JSON response');
-  await sendResponse(statusCode, 'application/json', JSON.stringify(json), resp);
+export const sendJsonResponse = async (_: Debugger, statusCode: number, json: any, resp: ServerResponse): Promise<void> => {
+  _.debug('Sending JSON response');
+  await sendResponse(_, statusCode, 'application/json', JSON.stringify(json), resp);
 }
 
 /**
  * Send response
+ * @param _
  * @param statusCode
  * @param contentType
  * @param content
  * @param resp
  */
-const sendResponse = async (statusCode: number, contentType: string, content: any, resp: ServerResponse): Promise<void> => {
-  getLogger('ResponseUtils').debug('Setting response');
+const sendResponse = async (_: Debugger, statusCode: number, contentType: string, content: any, resp: ServerResponse): Promise<void> => {
+  _.debug('Sending response', { content, statusCode, headers: resp.getHeaders(), contentType });
   resp.statusCode = statusCode;
   resp.setHeader('content-type', contentType);
 

@@ -1,13 +1,13 @@
-import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from "prxi";
-import { getConfig } from "../../config/getConfig";
-import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
-import { OpenIDUtils } from "../../utils/OpenIDUtils";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { RequestUtils } from "../../utils/RequestUtils";
-import { IncomingHttpHeaders, ServerHttp2Stream } from "http2";
-import { prepareInvalidatedAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
-import { Debugger } from "../../utils/Debugger";
-import { Context } from "../../types/Context";
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from 'prxi';
+import { getConfig } from '../../config/getConfig';
+import { sendErrorResponse, sendRedirect } from '../../utils/Http2ResponseUtils';
+import { OpenIDUtils } from '../../utils/OpenIDUtils';
+import { JwtPayload, verify } from 'jsonwebtoken';
+import { RequestUtils } from '../../utils/RequestUtils';
+import { IncomingHttpHeaders, ServerHttp2Stream } from 'node:http2';
+import { prepareInvalidatedAuthCookies, prepareSetCookies } from '../../utils/ResponseUtils';
+import { Debugger } from '../../utils/Debugger';
+import { Context } from '../../types/Context';
 
 export class Http2LogoutHandler implements Http2RequestHandlerConfig {
   /**
@@ -15,10 +15,10 @@ export class Http2LogoutHandler implements Http2RequestHandlerConfig {
    */
   public isMatching(method: HttpMethod, path: string, context: Context): boolean {
     const _ = context.debugger.child('Http2LogoutHandler -> isMatching', {method, path});
-    const matching = method === 'GET' && path === getConfig().logoutPath;
-    _.debug('Matching', {matching});
+    const match = method === 'GET' && path === getConfig().logoutPath;
+    _.debug('Matching result', {match});
 
-    return matching;
+    return match;
   }
 
   /**
@@ -91,7 +91,7 @@ export class Http2LogoutHandler implements Http2RequestHandlerConfig {
       });
 
       if (!resp.ok) {
-        _.error('Logout webhook request failed', null, { resp });
+        _.error('Logout webhook request failed', null, { statusCode: resp.status });
         throw new Error('Unable to make a logout webhook request');
       } else {
         _.debug('Request completed', {

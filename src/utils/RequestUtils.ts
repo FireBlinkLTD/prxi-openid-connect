@@ -1,10 +1,11 @@
-import { parse, serialize } from "cookie";
-import { IncomingHttpHeaders, IncomingMessage } from "http";
-import { Mapping } from "../config/Mapping";
-import { getConfig } from "../config/getConfig";
-import { Logger } from "pino";
-import { Jwt } from "jsonwebtoken";
-import { Debugger } from "./Debugger";
+import { parse, serialize } from 'cookie';
+import { IncomingHttpHeaders, IncomingMessage } from 'node:http';
+import { Mapping } from '../config/Mapping';
+import { getConfig } from '../config/getConfig';
+import { Logger } from 'pino';
+import { Jwt } from 'jsonwebtoken';
+import { Debugger } from './Debugger';
+import { HttpMethod } from 'prxi';
 
 export class RequestUtils {
   /**
@@ -196,5 +197,42 @@ export class RequestUtils {
     }
 
     return result;
+  }
+
+  /**
+   * Check if request is matching method
+   * @param debug
+   * @param mappings
+   * @param method
+   * @param path
+   * @returns
+   */
+  static findMapping(_: Debugger, mappings: Mapping[], method: HttpMethod, path: string): Mapping | null {
+    _.debug('Looking for a match', {
+      method,
+      path
+    });
+    for (const mapping of mappings) {
+      const matchMethod = !mapping.methods || mapping.methods.find(m => m === method);
+      if (matchMethod && mapping.pattern.exec(path)) {
+        let exclude = false;
+        for (const excludeMapping of mapping.exclude) {
+          const excludeMethodMatch = !mapping.methods || mapping.methods.find(m => m === method);
+          const excludePatternMatch = excludeMethodMatch && excludeMapping.pattern.exec(path);
+          exclude = !!excludePatternMatch;
+          if (exclude) {
+            continue;
+          }
+        }
+
+        if (!exclude) {
+          _.debug('Match found');
+          return mapping;
+        }
+      }
+    }
+
+    _.debug('No matches found');
+    return null;
   }
 }

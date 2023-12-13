@@ -1,4 +1,4 @@
-import { HttpMethod } from "prxi";
+import { HttpMethod } from 'prxi';
 
 export interface Mapping {
   pattern: RegExp;
@@ -20,14 +20,17 @@ export interface Mapping {
   */
 export const prepareMappings = (value: string): Mapping[] => {
   const result: Mapping[] = [];
+  /* istanbul ignore else */
   if (value) {
     let json;
     try {
       json = JSON.parse(value);
     } catch (e) {
+      /* istanbul ignore next */
       throw new Error(`Invalid mapping, unable to parse json for value: ${value}`);
     }
 
+    /* istanbul ignore next */
     if (!Array.isArray(json)) {
       throw new Error(`Invalid mapping, array expected instead of: ${value}`);
     }
@@ -43,6 +46,7 @@ export const prepareMappings = (value: string): Mapping[] => {
 
 const preparePattern = (value: {pattern?: string}): RegExp => {
   let { pattern } = value;
+  /* istanbul ignore next */
   if (!pattern) {
     throw new Error(`Unable to parse mappings for value: ${JSON.stringify(value)}`);
   }
@@ -83,20 +87,22 @@ export const prepareMapping = (value: any): Mapping => {
 
   // if no claims set, set default object
   if (!value.auth.claims || JSON.stringify(value.auth.claims) === '{}') {
+    /* istanbul ignore next */
     if (value.auth.required) {
       throw new Error(`Invalid mapping provided for pattern: ${value.pattern}, configuration will cause rejection of all requests. Either provide auth.claims or set auth.required flag to false`);
     }
+
     value.auth.claims = {};
   }
 
   return {
     pattern,
-    methods: value.methods?.map((m: string) => m.toUpperCase()),
+    methods: value.methods && value.methods.map((m: string) => m.toUpperCase()),
     auth:  value.auth,
-    exclude: ([] || value.exclude).map((e: any) => {
+    exclude: (value.exclude || []).map((e: any) => {
       return {
         pattern: preparePattern(e),
-        methods: e.methods?.map((m: string) => m.toUpperCase()),
+        methods: e.methods && e.methods.map((m: string) => m.toUpperCase()),
       }
     })
   }

@@ -21,7 +21,7 @@ export class BaseSuite {
     // get original configuration
     this.originalConfig = structuredClone(getConfig());
     this.fixConfig();
-    this.prxi = await start(true);
+    this.prxi = await start();
   }
 
   public async after() {
@@ -100,7 +100,7 @@ export class BaseSuite {
       ...getConfig(),
       ...config,
     });
-    this.prxi = await start(true);
+    this.prxi = await start();
   }
 
   /**
@@ -130,7 +130,7 @@ export class BaseSuite {
    * @returns
    */
   protected async withNewPage(url: string, handler: (page: Page) => Promise<void>, beforeNavigate?: (page: Page) => Promise<void>): Promise<void> {
-    console.log(`[puppeteer] -> Launching browser`);
+    console.log(`[test] -> Launching browser`);
     const browser = await puppeteer.launch({
       headless: 'new',
       ignoreHTTPSErrors: true,
@@ -138,7 +138,7 @@ export class BaseSuite {
     });
 
     try {
-      console.log(`[puppeteer] -> Opening new page`);
+      console.log(`[test] -> Opening new page`);
       const page = await browser.newPage();
       try {
         if (beforeNavigate) {
@@ -147,17 +147,17 @@ export class BaseSuite {
 
         await this.navigate(page, url);
 
-        console.log(`[puppeteer] -> Calling the handler`);
+        console.log(`[test] -> Calling the handler`);
         await handler(page);
       } catch (e) {
         try {
           const path = `puppeteer-error-${Date.now()}.png`;
-          console.log(`[puppeteer] Error occurred while on page: ${page.url()}; Screenshot name: ${path}`);
-          console.log('[puppeteer]', e);
+          console.log(`[test] Error occurred while on page: ${page.url()}; Screenshot name: ${path}`);
+          console.error('[test] Error', e);
           try {
             await page.screenshot({ path });
           } catch (e) {
-            console.log('[puppeteer] Unable to create screenshot', e);
+            console.log('[test] Unable to create screenshot', e);
           }
         } finally {
           throw e;
@@ -173,7 +173,7 @@ export class BaseSuite {
    * @param page
    */
   protected async logout(page: Page): Promise<void> {
-    console.log('[puppeteer] -> Logging out');
+    console.log('[test] -> Logging out');
     await this.navigate(page, getConfig().hostURL + getConfig().logoutPath);
   }
 
@@ -182,7 +182,7 @@ export class BaseSuite {
    * @param page
    */
   protected async loginOnKeycloak(page: Page): Promise<void> {
-    console.log('[puppeteer] -> Login in');
+    console.log('[test] -> Login in');
 
     await page.focus('#username');
     await page.keyboard.type(process.env.KC_TEST_USER);
@@ -202,7 +202,7 @@ export class BaseSuite {
    * @param url
    */
   protected async navigate(page: Page, url: string): Promise<void> {
-    console.log('[puppeteer] -> navigating to ', url);
+    console.log('[test] -> navigating to ', url);
     await page.goto(url);
   }
 

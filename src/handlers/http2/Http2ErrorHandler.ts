@@ -1,8 +1,8 @@
-import { IncomingHttpHeaders, ServerHttp2Stream } from "http2";
-import { Http2ErrorHandler } from "prxi";
-import { getConfig } from "../../config/getConfig";
-import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
-import { Context } from "../../types/Context";
+import { IncomingHttpHeaders, ServerHttp2Stream } from 'node:http2';
+import { Http2ErrorHandler } from 'prxi';
+import { getConfig } from '../../config/getConfig';
+import { sendErrorResponse, sendRedirect } from '../../utils/Http2ResponseUtils';
+import { Context } from '../../types/Context';
 
 export const http2ErrorHandler: Http2ErrorHandler = async (stream: ServerHttp2Stream, headers: IncomingHttpHeaders, err: Error, context: Context): Promise<void> => {
   const _ = context.debugger.child('http2ErrorHandler');

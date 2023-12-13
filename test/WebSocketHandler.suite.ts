@@ -1,11 +1,12 @@
 import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
-import { getConfig } from "../src/config/getConfig";
+import { getConfig, updateConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
 import { start } from "../src/Server";
 import { prepareMapping } from "../src/config/Mapping";
 import {io} from 'socket.io-client';
 import { serialize } from "cookie";
+import { Configuration } from "prxi";
 
 class BaseWebSocketSuite extends BaseSuite {
   @test()
@@ -64,7 +65,7 @@ class BaseWebSocketSuite extends BaseSuite {
     }
 
     await this.prxi.stop(true);
-    this.prxi = await start(true);
+    this.prxi = await start();
   }
 
   /**
@@ -87,7 +88,7 @@ class BaseWebSocketSuite extends BaseSuite {
         reconnection: false,
         extraHeaders: {
           cookie: cookies.map(c => serialize(c.name, c.value)).join('; '),
-        }
+        },
       });
 
       const send = 'test';

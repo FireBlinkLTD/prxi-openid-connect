@@ -1079,10 +1079,10 @@ destroy@1.2.0:
   resolved "https://registry.yarnpkg.com/destroy/-/destroy-1.2.0.tgz#4803735509ad8be552934c67df614f94e66fa015"
   integrity sha512-2sJGJTaXIIaR1w4iJSNoN0hnMY7Gpc/n8D4qSCJw8QqFWXf7cuAgnEHxBpweaVcPevC2l3KpjYCx3NypQQgaJg==
 
-dev-echo-server@^0.2.0:
-  version "0.2.0"
-  resolved "https://registry.yarnpkg.com/dev-echo-server/-/dev-echo-server-0.2.0.tgz#85bc10ffda9ca846c815352cea3036f169a526e8"
-  integrity sha512-tYsBqAX4letp+6eknjiA6sHtoRWLNpZ0V5NGslJkMU1iZ1/Y896we09HG+s8Z+qgIficjtXZ6Sfewavk09tlbA==
+dev-echo-server@^0.2.1:
+  version "0.2.1"
+  resolved "https://registry.yarnpkg.com/dev-echo-server/-/dev-echo-server-0.2.1.tgz#bde614be0d126610517f3d91b682bdc5e2050424"
+  integrity sha512-6iLSDm7+lHAy6V0dy74KI6ia/C/cViyLsB7r2NIo+6DZiKNzy/0mpTMYiY7YXANIV90uAWZALbXJk1qoCKoCfw==
   dependencies:
     socket.io "^4.7.2"
 
@@ -2901,10 +2901,10 @@ proxy-from-env@^1.1.0:
   resolved "https://registry.yarnpkg.com/proxy-from-env/-/proxy-from-env-1.1.0.tgz#e102f16ca355424865755d2c9e8ea4f24d58c3e2"
   integrity sha512-D+zkORCbA9f1tdWRK0RaCR3GPv50cMxcrz4X8k5LTSUD1Dkw47mKJEZQNunItRTkWwgtaUSo1RVFRIG9ZXiFYg==
 
-prxi@^1.2.1:
-  version "1.2.1"
-  resolved "https://registry.yarnpkg.com/prxi/-/prxi-1.2.1.tgz#903f1f423a9faf339ef3095987f096686a037b3b"
-  integrity sha512-CxBZob4kRU5/K1ALJO1UFKeamtbyQL/m6pOGvxJyNSQM8fiZnktX7gBkmnACkbSDg3irmOPA/zwf7LmOw8dUEg==
+prxi@^1.2.2:
+  version "1.2.2"
+  resolved "https://registry.yarnpkg.com/prxi/-/prxi-1.2.2.tgz#a10e2656fa60ac8bed7c3dd6f27f4c8129f34e58"
+  integrity sha512-pHCmXuonnPCt7MQTHUQhCvrORbhvT0XyZ4QsrzlUrkHMYlinaUsIy1ym+UpYHxobX/YAqRCzxByxUetJKT5Bmg==
 
 ps-tree@^1.2.0:
   version "1.2.0"

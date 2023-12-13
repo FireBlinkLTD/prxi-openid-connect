@@ -1,7 +1,7 @@
 import { Issuer, Client, TokenSet } from 'openid-client';
 import getLogger from '../Logger';
 import { getConfig } from '../config/getConfig';
-import { IncomingMessage } from 'http';
+import { IncomingMessage } from 'node:http';
 import jwkToBuffer = require('jwk-to-pem');
 import { Jwt, verify, sign, decode } from 'jsonwebtoken';
 import { Logger } from 'pino';

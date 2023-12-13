@@ -1,11 +1,11 @@
 import 'dotenv/config';
 
 import { Prxi } from 'prxi';
-import { onShutdown } from "node-graceful-shutdown";
+import { onShutdown } from 'node-graceful-shutdown';
 
-import { getConfig, getSanitizedConfig } from "./config/getConfig";
+import { getConfig, getSanitizedConfig } from './config/getConfig';
 
-import getLogger from "./Logger";
+import getLogger from './Logger';
 import { CallbackHandler } from './handlers/http/CallbackHandler';
 import { HealthHandler } from './handlers/http/HealthHandler';
 import { ProxyHandler } from './handlers/http/ProxyHandler';
@@ -25,10 +25,9 @@ import { Http2CallbackHandler } from './handlers/http2/Http2CallbackHandler';
 import { Http2ProxyHandler } from './handlers/http2/Http2ProxyHandler';
 import { Debugger } from './utils/Debugger';
 import { randomUUID } from 'crypto';
-import { IncomingHttpHeaders } from 'http';
-import { constants } from 'http2';
+import { IncomingHttpHeaders } from 'node:http';
+import { constants } from 'node:http2';
 import { Console } from './utils/Console';
-import { inspect } from 'util';
 
 // Prepare logger
 
@@ -39,12 +38,13 @@ import { inspect } from 'util';
  * @param testMode
  * @returns
  */
-export const start = async (testMode = false): Promise<Prxi> => {
+export const start = async (): Promise<Prxi> => {
   const logger = getLogger('Server');
   const config = getConfig();
 
   logger.child({config: getSanitizedConfig()}).debug('Configuration');
 
+  /* istanbul ignore next */
   if (!config.licenseConsent) {
     logger.error('###############################################################');
     logger.error('#                                                             #');
@@ -75,6 +75,7 @@ export const start = async (testMode = false): Promise<Prxi> => {
       requestId: context.requestId,
       _: {mode, path, method}
     }).info('Processing request - finished');
+    /* istanbul ignore else */
     if (context.debugger.enabled) {
       Console.printSolidBox(`[REQUEST] [${mode}] ${method}: ${path}`);
       console.log(context.debugger.toString());
@@ -95,6 +96,7 @@ export const start = async (testMode = false): Promise<Prxi> => {
         }
       },
       info(context, message, params) {
+        /* istanbul ignore next */
         if (context.debugger) {
           context.debugger.info(message, params);
         } else {
@@ -188,7 +190,7 @@ export const start = async (testMode = false): Promise<Prxi> => {
   await prxi.start();
 
   /* istanbul ignore next */
-  if (!testMode) {
+  if (process.env.NODE_ENV !== 'test') {
     onShutdown(async () => {
       logger.info('Gracefully shutting down the server');
       await prxi.stop();

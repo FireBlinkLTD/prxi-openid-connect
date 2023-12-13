@@ -1,5 +1,5 @@
-import { Logger } from "pino";
-import getLogger from "../Logger";
+import { Logger } from 'pino';
+import getLogger from '../Logger';
 
 export type DebugEvent = {
   date: Date;
@@ -110,6 +110,7 @@ export class Debugger {
    */
   public toString(prefixSpaces: number = 0): string | null {
     if (!this.enabled) {
+      /* istanbul ignore next */
       return null;
     }
 

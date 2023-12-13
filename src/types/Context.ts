@@ -1,6 +1,6 @@
-import { Jwt } from "jsonwebtoken";
-import { Mapping } from "../config/Mapping";
-import { Debugger } from "../utils/Debugger";
+import { Jwt } from 'jsonwebtoken';
+import { Mapping } from '../config/Mapping';
+import { Debugger } from '../utils/Debugger';
 
 export interface Context {
   requestId: string;

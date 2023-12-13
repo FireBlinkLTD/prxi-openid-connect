@@ -1,14 +1,14 @@
-import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig, Response } from "prxi";
-import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
-import { getConfig } from "../../config/getConfig";
-import { Mapping } from "../../config/Mapping";
-import { JWTVerificationResult, OpenIDUtils } from "../../utils/OpenIDUtils";
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig, Response } from 'prxi';
+import { sendErrorResponse, sendRedirect } from '../../utils/Http2ResponseUtils';
+import { getConfig } from '../../config/getConfig';
+import { Mapping } from '../../config/Mapping';
+import { JWTVerificationResult, OpenIDUtils } from '../../utils/OpenIDUtils';
 import { JwtPayload, verify } from 'jsonwebtoken';
-import { RequestUtils } from "../../utils/RequestUtils";
-import { IncomingHttpHeaders, OutgoingHttpHeaders, ServerHttp2Stream, constants } from "http2";
-import { prepareInvalidatedAuthCookies, prepareSetCookies, prepareAuthCookies } from "../../utils/ResponseUtils";
-import { Debugger } from "../../utils/Debugger";
-import { Context } from "../../types/Context";
+import { RequestUtils } from '../../utils/RequestUtils';
+import { IncomingHttpHeaders, OutgoingHttpHeaders, ServerHttp2Stream, constants } from 'node:http2';
+import { prepareInvalidatedAuthCookies, prepareSetCookies, prepareAuthCookies } from '../../utils/ResponseUtils';
+import { Debugger } from '../../utils/Debugger';
+import { Context } from '../../types/Context';
 
 export class Http2ProxyHandler implements Http2RequestHandlerConfig {
   /**
@@ -18,7 +18,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     const _ = context.debugger.child('Http2ProxyHandler -> isMatching', { method, path });
 
     _.debug('Looking for public matches');
-    context.mapping = this.findMatchingMapping(
+    context.mapping = RequestUtils.findMapping(
       _,
       getConfig().mappings.public,
       method,
@@ -33,7 +33,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     }
 
     _.debug('Looking for API matches');
-    context.mapping = this.findMatchingMapping(
+    context.mapping = RequestUtils.findMapping(
       _,
       getConfig().mappings.api,
       method,
@@ -48,7 +48,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     }
 
     _.debug('Looking for page matches');
-    context.mapping = this.findMatchingMapping(
+    context.mapping = RequestUtils.findMapping(
       _,
       getConfig().mappings.pages,
       method,
@@ -319,12 +319,10 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
 
       if (context.mapping.auth.required) {
         if (context.page) {
-          _.debug('Auth required, sending redirect to the auth page');
           sendRedirect(_, stream, headers, OpenIDUtils.getAuthorizationUrl(), {
             'Set-Cookie': prepareSetCookies(cookiesToSet),
           });
         } else {
-          _.debug('Auth required, sending 401 error response');
           sendErrorResponse(_, stream, headers, 401, 'Unauthorized', {
             'Set-Cookie': prepareSetCookies(cookiesToSet),
           });
@@ -346,18 +344,10 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
 
       const cookiesToSet = prepareSetCookies(prepareInvalidatedAuthCookies());
       if (context.page) {
-        _.debug('Sending redirect to the auth page', {
-          cookiesToSet,
-        });
-
         sendRedirect(_, stream, headers, OpenIDUtils.getAuthorizationUrl(), {
           'Set-Cookie': cookiesToSet,
         });
       } else {
-        _.debug('Sending 401 error', {
-          cookiesToSet,
-        });
-
         sendErrorResponse(_, stream, headers, 401, 'Unauthorized', {
           'Set-Cookie': cookiesToSet,
         });
@@ -392,12 +382,8 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
 
     if (!claims) {
       if (context.page && getConfig().redirect.pageRequest.e403) {
-        _.debug('No claims extracted, sending redirect to custom 403 page', {
-          redirectTo: getConfig().redirect.pageRequest.e403,
-        })
         sendRedirect(_, stream, headers, getConfig().redirect.pageRequest.e403);
       } else {
-        _.debug('No claims extracted, sending 403 response');
         sendErrorResponse(_, stream, headers, 403, 'Forbidden');
       }
 
@@ -408,42 +394,6 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     _.debug('Access allowed', { context });
 
     return false;
-  }
-
-  /**
-   * Check if request is matching method
-   * @param debug
-   * @param mappings
-   * @param method
-   * @param path
-   * @returns
-   */
-  private findMatchingMapping(_: Debugger, mappings: Mapping[], method: HttpMethod, path: string): Mapping | null {
-    _.debug('Looking for a match', {
-      method,
-      path
-    });
-    for (const mapping of mappings) {
-      const matchMethod = !mapping.methods || mapping.methods.find(m => m === method);
-      if (matchMethod && mapping.pattern.exec(path)) {
-        let exclude = false;
-        for (const excludeMapping of mapping.exclude) {
-          const excludeMethodMatch = !mapping.methods || mapping.methods.find(m => m === method);
-          exclude = excludeMethodMatch && !!excludeMapping.pattern.exec(path);
-          if (exclude) {
-            continue;
-          }
-        }
-
-        if (!exclude) {
-          _.debug('Match found');
-          return mapping;
-        }
-      }
-    }
-
-    _.debug('No matches found');
-    return null;
   }
 }
 
