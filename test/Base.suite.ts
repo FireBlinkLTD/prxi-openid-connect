@@ -2,13 +2,13 @@ import 'dotenv/config';
 
 import { Config } from "../src/config/Config";
 import { getConfig, updateConfig } from "../src/config/getConfig";
-import puppeteer, { Page } from 'puppeteer';
-import { start } from '../src/Server';
-import { Prxi } from 'prxi';
-import { readFileSync } from 'fs';
-import { resolve } from 'path';
-import { context } from '@testdeck/mocha';
-import { Console } from '../src/utils/Console';
+import puppeteer, { Page } from "puppeteer";
+import { start } from "../src/Server";
+import { Prxi } from "prxi";
+import { readFileSync } from "fs";
+import { resolve } from "path";
+import { context } from "@testdeck/mocha";
+import { Console } from "../src/utils/Console";
 
 export class BaseSuite {
   private originalConfig: Config;
@@ -174,7 +174,7 @@ export class BaseSuite {
    */
   protected async logout(page: Page): Promise<void> {
     console.log('[test] -> Logging out');
-    await this.navigate(page, getConfig().hostURL + getConfig().logoutPath);
+    await this.navigate(page, getConfig().hostURL + getConfig().paths.logout);
   }
 
   /**
@@ -203,7 +203,9 @@ export class BaseSuite {
    */
   protected async navigate(page: Page, url: string): Promise<void> {
     console.log('[test] -> navigating to ', url);
-    await page.goto(url);
+    await page.goto(url, {
+      waitUntil: 'networkidle0',
+    });
   }
 
   /**

@@ -1,6 +1,6 @@
-import { IncomingHttpHeaders } from 'node:http';
-import { ServerHttp2Stream, constants } from 'node:http2';
-import { Debugger } from './Debugger';
+import { IncomingHttpHeaders } from "node:http";
+import { ServerHttp2Stream, constants } from "node:http2";
+import { Debugger } from "./Debugger";
 
 const emptyObj = {};
 
@@ -98,8 +98,4 @@ const sendResponse = async (_: Debugger, statusCode: number, contentType: string
   stream.end();
   return;
 }
-
-
-
-
 

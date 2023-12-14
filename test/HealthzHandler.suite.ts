@@ -7,7 +7,7 @@ import { strictEqual } from "assert";
 class HealthzHandlerSuite extends BaseSuite {
   @test()
   async healthz() {
-    await this.withNewPage(getConfig().hostURL + getConfig().healthPath, async (page) => {
+    await this.withNewPage(getConfig().hostURL + getConfig().paths.health, async (page) => {
       let json = await this.getJsonFromPage(page);
       strictEqual(json.success, true);
     });

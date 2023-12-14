@@ -1,11 +1,10 @@
-import { parse, serialize } from 'cookie';
-import { IncomingHttpHeaders, IncomingMessage } from 'node:http';
-import { Mapping } from '../config/Mapping';
-import { getConfig } from '../config/getConfig';
-import { Logger } from 'pino';
-import { Jwt } from 'jsonwebtoken';
-import { Debugger } from './Debugger';
-import { HttpMethod } from 'prxi';
+import { parse, serialize } from "cookie";
+import { IncomingHttpHeaders } from "node:http";
+import { Mapping } from "../config/Mapping";
+import { getConfig } from "../config/getConfig";
+import { Jwt } from "jsonwebtoken";
+import { Debugger } from "./Debugger";
+import { HttpMethod } from "prxi";
 
 export class RequestUtils {
   /**
@@ -128,7 +127,7 @@ export class RequestUtils {
    * @param claimPaths
    * @returns
    */
-  private static extractRawJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, unknown> {
+  static extractRawJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, unknown> {
     const result: Record<string, unknown> = {};
 
     for (const name of Object.keys(claimPaths)) {
@@ -163,7 +162,7 @@ export class RequestUtils {
    * @param claimPaths
    * @returns
    */
-  private static extractAuthJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, string[]> {
+  static extractAuthJWTClaims(tokens: Jwt[], claimPaths: Record<string, string[]>): Record<string, string[]> {
     const result: Record<string, string[]> = {};
 
     for (const name of Object.keys(claimPaths)) {
@@ -197,6 +196,28 @@ export class RequestUtils {
     }
 
     return result;
+  }
+
+  /**
+   * Check if method and path matching
+   * @param _
+   * @param reqMethod
+   * @param reqPath
+   * @param expectedMethod
+   * @param expectedPath
+   * @returns
+   */
+  static isMatching(_: Debugger, reqMethod: HttpMethod, reqPath: string, expectedMethod: HttpMethod, expectedPath?: string): boolean {
+    if (!expectedPath) {
+      _.debug('Skipped, no path provided');
+
+      return false;
+    }
+
+    const match = reqMethod === expectedMethod && reqPath === expectedPath;
+    _.debug('Matching result', {match});
+
+    return match;
   }
 
   /**

@@ -1,5 +1,5 @@
-import { Logger } from 'pino';
-import getLogger from '../Logger';
+import { Logger } from "pino";
+import getLogger from "../Logger";
 
 export type DebugEvent = {
   date: Date;

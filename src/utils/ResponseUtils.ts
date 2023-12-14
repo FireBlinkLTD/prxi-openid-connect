@@ -1,9 +1,9 @@
-import { IncomingMessage, ServerResponse } from "http"
-import { getConfig } from '../config/getConfig';
-import { serialize } from 'cookie';
-import { TokenSet } from 'openid-client';
-import getLogger from '../Logger';
-import { Debugger } from './Debugger';
+import { Request, Response } from "prxi";
+import { getConfig } from "../config/getConfig";
+import { serialize } from "cookie";
+import { TokenSet } from "openid-client";
+import getLogger from "../Logger";
+import { Debugger } from "./Debugger";
 
 let domain: string;
 
@@ -24,7 +24,7 @@ export const getDomain = (): string => {
  * @param resp
  * @param override
  */
-export const invalidateAuthCookies = (resp: ServerResponse, override?: Record<string, { value: string, expires?: Date }>): void => {
+export const invalidateAuthCookies = (resp: Response, override?: Record<string, { value: string, expires?: Date }>): void => {
   const accessCookies = prepareInvalidatedAuthCookies(override);
   setCookies(resp, accessCookies);
 }
@@ -75,7 +75,7 @@ export const prepareInvalidatedAuthCookies = (override?: Record<string, { value:
  * @param resp
  * @param tokens
  */
-export const setAuthCookies = (resp: ServerResponse, tokens: TokenSet, metaToken?: string): void => {
+export const setAuthCookies = (resp: Response, tokens: TokenSet, metaToken?: string): void => {
   const accessCookies = prepareAuthCookies(tokens, metaToken);
   setCookies(resp, accessCookies);
 }
@@ -131,7 +131,7 @@ export const prepareAuthCookies = (tokens: TokenSet, metaToken?: string): Record
  * @param resp
  * @param cookies
  */
-const setCookies = (resp: ServerResponse, cookies: Record<string, {value: string, expires?: Date}>): void => {
+const setCookies = (resp: Response, cookies: Record<string, {value: string, expires?: Date}>): void => {
   const setCookies = prepareSetCookies(cookies);
   resp.setHeader('Set-Cookie', setCookies);
 }
@@ -144,7 +144,7 @@ const setCookies = (resp: ServerResponse, cookies: Record<string, {value: string
  * @param url
  * @returns
  */
-export const sendRedirect = async (_: Debugger, req: IncomingMessage, resp: ServerResponse, url: string): Promise<void> => {
+export const sendRedirect = async (_: Debugger, req: Request, resp: Response, url: string): Promise<void> => {
   _.debug('Sending redirect', {
     redirectTo: url,
     outgoingHeaders: resp.getHeaders(),
@@ -173,7 +173,7 @@ export const sendRedirect = async (_: Debugger, req: IncomingMessage, resp: Serv
  * @param message
  * @param resp
  */
-export const sendErrorResponse = async (_: Debugger, req: IncomingMessage, statusCode: number, message: string, resp: ServerResponse): Promise<void>  => {
+export const sendErrorResponse = async (_: Debugger, req: Request, statusCode: number, message: string, resp: Response): Promise<void>  => {
   _.debug('Sending error response', {message, statusCode, responseHeaders: resp.getHeaders()});
   if (req.headers.accept === 'application/json') {
     return await sendJsonResponse(_, statusCode, {
@@ -195,7 +195,7 @@ export const sendErrorResponse = async (_: Debugger, req: IncomingMessage, statu
  * @param json
  * @param resp
  */
-export const sendJsonResponse = async (_: Debugger, statusCode: number, json: any, resp: ServerResponse): Promise<void> => {
+export const sendJsonResponse = async (_: Debugger, statusCode: number, json: any, resp: Response): Promise<void> => {
   _.debug('Sending JSON response');
   await sendResponse(_, statusCode, 'application/json', JSON.stringify(json), resp);
 }
@@ -208,7 +208,7 @@ export const sendJsonResponse = async (_: Debugger, statusCode: number, json: an
  * @param content
  * @param resp
  */
-const sendResponse = async (_: Debugger, statusCode: number, contentType: string, content: any, resp: ServerResponse): Promise<void> => {
+const sendResponse = async (_: Debugger, statusCode: number, contentType: string, content: any, resp: Response): Promise<void> => {
   _.debug('Sending response', { content, statusCode, headers: resp.getHeaders(), contentType });
   resp.statusCode = statusCode;
   resp.setHeader('content-type', contentType);

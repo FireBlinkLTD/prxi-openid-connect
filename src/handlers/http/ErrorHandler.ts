@@ -1,8 +1,8 @@
-import { IncomingMessage, ServerResponse } from 'node:http';
-import { ErrorHandler } from 'prxi';
-import { sendErrorResponse, sendRedirect } from '../../utils/ResponseUtils';
-import { getConfig } from '../../config/getConfig';
-import { Context } from '../../types/Context';
+import { IncomingMessage, ServerResponse } from "node:http";
+import { ErrorHandler } from "prxi";
+import { sendErrorResponse, sendRedirect } from "../../utils/ResponseUtils";
+import { getConfig } from "../../config/getConfig";
+import { Context } from "../../types/Context";
 
 export const errorHandler: ErrorHandler = async (req: IncomingMessage, res: ServerResponse, err: Error, context: Context) => {
   const _ = context.debugger.child('errorHandler');

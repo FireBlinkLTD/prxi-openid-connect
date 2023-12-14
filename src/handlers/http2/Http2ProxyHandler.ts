@@ -1,21 +1,20 @@
-import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig, Response } from 'prxi';
-import { sendErrorResponse, sendRedirect } from '../../utils/Http2ResponseUtils';
-import { getConfig } from '../../config/getConfig';
-import { Mapping } from '../../config/Mapping';
-import { JWTVerificationResult, OpenIDUtils } from '../../utils/OpenIDUtils';
-import { JwtPayload, verify } from 'jsonwebtoken';
-import { RequestUtils } from '../../utils/RequestUtils';
-import { IncomingHttpHeaders, OutgoingHttpHeaders, ServerHttp2Stream, constants } from 'node:http2';
-import { prepareInvalidatedAuthCookies, prepareSetCookies, prepareAuthCookies } from '../../utils/ResponseUtils';
-import { Debugger } from '../../utils/Debugger';
-import { Context } from '../../types/Context';
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig, Response } from "prxi";
+import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
+import { getConfig } from "../../config/getConfig";
+import { JwtPayload, verify } from "jsonwebtoken";
+import { RequestUtils } from "../../utils/RequestUtils";
+import { IncomingHttpHeaders, OutgoingHttpHeaders, ServerHttp2Stream } from "node:http2";
+import { prepareSetCookies } from "../../utils/ResponseUtils";
+import { Debugger } from "../../utils/Debugger";
+import { Context } from "../../types/Context";
+import { handleHttp2AuthenticationFlow } from "../../utils/AccessUtils";
 
 export class Http2ProxyHandler implements Http2RequestHandlerConfig {
   /**
    * @inheritdoc
    */
   public isMatching(method: HttpMethod, path: string, context: Context): boolean {
-    const _ = context.debugger.child('Http2ProxyHandler -> isMatching', { method, path });
+    const _ = context.debugger.child('Http2ProxyHandler -> isMatching()', { method, path });
 
     _.debug('Looking for public matches');
     context.mapping = RequestUtils.findMapping(
@@ -70,9 +69,9 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
    * @inheritdoc
    */
   async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
-    const _ = context.debugger.child('Http2ProxyHandler -> handle', { context, headers, method, path });
+    const _ = context.debugger.child('Http2ProxyHandler -> handle()', { context, headers, method, path });
     const cookies = RequestUtils.getCookies(headers);
-    _.debug('-> RequestUtils.getCookies', { cookies });
+    _.debug('-> RequestUtils.getCookies()', { cookies });
 
     // skip JWT validation for public mappings
     if (context.public) {
@@ -96,8 +95,8 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
       _.debug('Meta cookie found', { metaPayload });
     }
 
-    let { reject: breakFlow, cookiesToSet} = await this.handleAuthenticationFlow(
-      _.child('-> handleAuthenticationFlow'),
+    let { reject: breakFlow, cookiesToSet} = await handleHttp2AuthenticationFlow(
+      _.child('-> handleAuthenticationFlow()'),
       stream,
       headers,
       cookies,
@@ -112,7 +111,7 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     }
 
     breakFlow = this.handleAuthorizationFlow(
-      _.child('-> handleAuthorizationFlow'),
+      _.child('-> handleAuthorizationFlow()'),
       stream,
       headers,
       method,
@@ -214,156 +213,6 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
         d.debug('End');
       }
     });
-  }
-
-  /**
-   * Handle authentication flow
-   * @param debug
-   * @param stream
-   * @param headers
-   * @param cookies
-   * @param method
-   * @param path
-   * @param context
-   * @param metaPayload
-   * @returns
-   */
-  private async handleAuthenticationFlow(_: Debugger, stream: ServerHttp2Stream, headers: IncomingHttpHeaders, cookies: Record<string, string>, method: string, path: string, context: Context, metaPayload: Record<string, any>): Promise<{
-    reject: boolean,
-    cookiesToSet?: Record<string, {value: string, expires?: Date}>,
-  }> {
-    _.debug('Handling authentication flow', {
-      cookies,
-      path,
-      method,
-      context,
-      headers
-    })
-
-    let cookiesToSet = {};
-    let accessToken = context.accessToken = cookies[getConfig().cookies.names.accessToken];
-    let idToken = context.idToken = cookies[getConfig().cookies.names.idToken];
-    let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.refreshToken];
-
-    let { jwt: accessTokenJWT, verificationResult: accessTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(accessToken);
-    let { jwt: idTokenJWT, verificationResult: idTokenVerificationResult } = await OpenIDUtils.parseTokenAndVerify(idToken);
-
-    context.accessTokenJWT = accessTokenJWT;
-    context.idTokenJWT = idTokenJWT;
-
-    // if access token is missing or expired attempt to refresh tokens
-    if(
-      refreshToken &&
-      (
-        accessTokenVerificationResult === JWTVerificationResult.MISSING ||
-        accessTokenVerificationResult === JWTVerificationResult.EXPIRED ||
-        idTokenVerificationResult === JWTVerificationResult.EXPIRED
-      )
-    ) {
-      try {
-        _.debug('Refreshing token', { refreshToken, accessTokenVerificationResult, idTokenVerificationResult });
-        const tokens = await OpenIDUtils.refreshTokens(refreshToken);
-        _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
-
-        let metaToken;
-        if (metaPayload) {
-          metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
-          _.debug('Meta token prepared', { metaToken });
-        }
-
-        cookiesToSet = prepareAuthCookies(tokens, metaToken);
-
-        accessToken = context.accessToken = tokens.access_token;
-        idToken = context.idToken = tokens.id_token;
-        refreshToken = context.refreshToken = tokens.refresh_token;
-
-        const accessVerification = await OpenIDUtils.parseTokenAndVerify(accessToken);
-        const idVerification = await OpenIDUtils.parseTokenAndVerify(idToken);
-        accessTokenVerificationResult = accessVerification.verificationResult;
-
-        context.accessTokenJWT = accessVerification.jwt;
-        context.idTokenJWT = idVerification.jwt;
-      } catch (e) {
-        _.error(`Unable to refresh token`, e);
-
-        accessToken = context.accessToken = null;
-        idToken = context.idToken = null;
-        refreshToken = context.refreshToken = null;
-
-        accessTokenVerificationResult = JWTVerificationResult.MISSING;
-      }
-    }
-
-    if (accessTokenVerificationResult === JWTVerificationResult.MISSING) {
-      _.debug('Access token is missing');
-      if (context.page) {
-        let query = '';
-        let queryIdx = headers[constants.HTTP2_HEADER_PATH].indexOf('?');
-        if (queryIdx >= 0) {
-          query = headers[constants.HTTP2_HEADER_PATH].toString().substring(queryIdx);
-        }
-
-        _.debug('Preparing auth cookies to be invalidated, keeping original path', {
-          value: path + query,
-        });
-        cookiesToSet = prepareInvalidatedAuthCookies({
-          [getConfig().cookies.names.originalPath]: {
-            value: path + query,
-            expires: new Date(Date.now() + 30 * 60 * 1000), // 30 minutes
-          }
-        })
-      } else {
-        _.debug('Preparing auth cookies to be invalidated');
-        cookiesToSet = prepareInvalidatedAuthCookies();
-      }
-
-      if (context.mapping.auth.required) {
-        if (context.page) {
-          sendRedirect(_, stream, headers, OpenIDUtils.getAuthorizationUrl(), {
-            'Set-Cookie': prepareSetCookies(cookiesToSet),
-          });
-        } else {
-          sendErrorResponse(_, stream, headers, 401, 'Unauthorized', {
-            'Set-Cookie': prepareSetCookies(cookiesToSet),
-          });
-        }
-
-        _.debug('Access token is missing but mapping requires auth');
-        return {
-          reject: true
-        };
-      } else {
-        _.debug('Access token is missing and auth isn\'t required');
-        delete context.idTokenJWT;
-        delete context.accessTokenJWT;
-      }
-    } else if (accessTokenVerificationResult !== JWTVerificationResult.SUCCESS) {
-      _.debug('Access token verification failed', {
-        accessTokenVerificationResult,
-      });
-
-      const cookiesToSet = prepareSetCookies(prepareInvalidatedAuthCookies());
-      if (context.page) {
-        sendRedirect(_, stream, headers, OpenIDUtils.getAuthorizationUrl(), {
-          'Set-Cookie': cookiesToSet,
-        });
-      } else {
-        sendErrorResponse(_, stream, headers, 401, 'Unauthorized', {
-          'Set-Cookie': cookiesToSet,
-        });
-      }
-
-      _.debug('Access token is invalid but mapping requires auth');
-      return {
-        reject: true
-      };
-    }
-
-    _.debug('Authentication flow passes', { cookiesToSet });
-    return {
-      reject: false,
-      cookiesToSet,
-    };
   }
 
   /**

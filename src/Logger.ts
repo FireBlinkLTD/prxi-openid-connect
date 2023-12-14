@@ -1,5 +1,5 @@
-import pino from 'pino';
-import { getConfig } from './config/getConfig';
+import pino from "pino";
+import { getConfig } from "./config/getConfig";
 
 /**
  * Get logger

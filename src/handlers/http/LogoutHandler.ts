@@ -1,30 +1,32 @@
-import { IncomingMessage, ServerResponse } from 'node:http';
-import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from 'prxi';
-import { getConfig } from '../../config/getConfig';
-import { invalidateAuthCookies, sendRedirect } from '../../utils/ResponseUtils';
-import { OpenIDUtils } from '../../utils/OpenIDUtils';
-import { JwtPayload, verify } from 'jsonwebtoken';
-import { RequestUtils } from '../../utils/RequestUtils';
-import { Context } from '../../types/Context';
-import { Debugger } from '../../utils/Debugger';
+import { IncomingMessage, ServerResponse } from "node:http";
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { invalidateAuthCookies, sendRedirect } from "../../utils/ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
+import { JwtPayload, verify } from "jsonwebtoken";
+import { RequestUtils } from "../../utils/RequestUtils";
+import { Context } from "../../types/Context";
+import { Debugger } from "../../utils/Debugger";
 
 export class LogoutHandler implements HttpRequestHandlerConfig {
   /**
    * @inheritdoc
    */
   isMatching(method: HttpMethod, path: string, context: Context): boolean {
-    const _ = context.debugger.child('LogoutHandler -> isMatching', {method, path});
-    const match = method === 'GET' && path === getConfig().logoutPath;
-    _.debug('Matching result', {match});
-
-    return match;
+    return RequestUtils.isMatching(
+      context.debugger.child('LogoutHandler -> isMatching()', {method, path}),
+      // request
+      method, path,
+      // expected
+      'GET', getConfig().paths.logout,
+    );
   }
 
   /**
    * @inheritdoc
    */
   async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context): Promise<void> {
-    const _ = context.debugger.child('LogoutHandler -> handle', {method, path});
+    const _ = context.debugger.child('LogoutHandler -> handle()', {method, path});
     invalidateAuthCookies(res);
     await this.handleWebhook(_, req);
 
