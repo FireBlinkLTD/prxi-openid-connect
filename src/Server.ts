@@ -1,37 +1,35 @@
 import 'dotenv/config';
 
-import { Prxi } from 'prxi';
-import { onShutdown } from 'node-graceful-shutdown';
+import { Prxi } from "prxi";
+import { onShutdown } from "node-graceful-shutdown";
 
-import { getConfig, getSanitizedConfig } from './config/getConfig';
+import { getConfig, getSanitizedConfig } from "./config/getConfig";
 
-import getLogger from './Logger';
-import { CallbackHandler } from './handlers/http/CallbackHandler';
-import { HealthHandler } from './handlers/http/HealthHandler';
-import { ProxyHandler } from './handlers/http/ProxyHandler';
-import { errorHandler } from './handlers/http/ErrorHandler';
-import { http2ErrorHandler } from './handlers/http2/Http2ErrorHandler';
+import getLogger from "./Logger";
+import { CallbackHandler } from "./handlers/http/CallbackHandler";
+import { HealthHandler } from "./handlers/http/HealthHandler";
+import { ProxyHandler } from "./handlers/http/ProxyHandler";
+import { errorHandler } from "./handlers/http/ErrorHandler";
+import { http2ErrorHandler } from "./handlers/http2/Http2ErrorHandler";
 
-import { OpenIDUtils } from './utils/OpenIDUtils';
-import { E404Handler } from './handlers/http/E404Handler';
-import { LogoutHandler } from './handlers/http/LogoutHandler';
-import { LoginHandler } from './handlers/http/LoginHandler';
-import { WebSocketHandler } from './handlers/WebsocketHandler';
-import { Http2HealthHandler } from './handlers/http2/Http2HealthHandler';
-import { Http2E404Handler } from './handlers/http2/Http2E404Handler';
-import { Http2LoginHandler } from './handlers/http2/Http2LoginHandler';
-import { Http2LogoutHandler } from './handlers/http2/Http2LogoutHandler';
-import { Http2CallbackHandler } from './handlers/http2/Http2CallbackHandler';
-import { Http2ProxyHandler } from './handlers/http2/Http2ProxyHandler';
-import { Debugger } from './utils/Debugger';
-import { randomUUID } from 'crypto';
-import { IncomingHttpHeaders } from 'node:http';
-import { constants } from 'node:http2';
-import { Console } from './utils/Console';
-
-// Prepare logger
-
-
+import { OpenIDUtils } from "./utils/OpenIDUtils";
+import { E404Handler } from "./handlers/http/E404Handler";
+import { LogoutHandler } from "./handlers/http/LogoutHandler";
+import { LoginHandler } from "./handlers/http/LoginHandler";
+import { WebSocketHandler } from "./handlers/WebsocketHandler";
+import { Http2HealthHandler } from "./handlers/http2/Http2HealthHandler";
+import { Http2E404Handler } from "./handlers/http2/Http2E404Handler";
+import { Http2LoginHandler } from "./handlers/http2/Http2LoginHandler";
+import { Http2LogoutHandler } from "./handlers/http2/Http2LogoutHandler";
+import { Http2CallbackHandler } from "./handlers/http2/Http2CallbackHandler";
+import { Http2ProxyHandler } from "./handlers/http2/Http2ProxyHandler";
+import { Debugger } from "./utils/Debugger";
+import { randomUUID } from "crypto";
+import { IncomingHttpHeaders } from "node:http";
+import { constants } from "node:http2";
+import { Console } from "./utils/Console";
+import { WhoamiAPIHandler } from "./handlers/http/api/WhoamiAPIHandler";
+import { Http2WhoamiAPIHandler } from './handlers/http2/api/Http2WhoamiAPIHandler';
 
 /**
  * Start server
@@ -165,6 +163,7 @@ export const start = async (): Promise<Prxi> => {
           HealthHandler,
           new LoginHandler(),
           new LogoutHandler(),
+          new WhoamiAPIHandler(),
           CallbackHandler,
           new ProxyHandler(),
           E404Handler,
@@ -173,6 +172,7 @@ export const start = async (): Promise<Prxi> => {
           Http2HealthHandler,
           new Http2LoginHandler(),
           new Http2LogoutHandler(),
+          new Http2WhoamiAPIHandler(),
           Http2CallbackHandler,
           new Http2ProxyHandler(),
           Http2E404Handler,

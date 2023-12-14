@@ -1,28 +1,30 @@
-import { IncomingMessage, ServerResponse } from 'node:http';
-import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from 'prxi';
-import { getConfig } from '../../config/getConfig';
-import { sendErrorResponse, sendRedirect, setAuthCookies } from '../../utils/ResponseUtils';
-import { OpenIDUtils } from '../../utils/OpenIDUtils';
-import { RequestUtils } from '../../utils/RequestUtils';
-import { Context } from '../../types/Context';
+import { IncomingMessage, ServerResponse } from "node:http";
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { sendErrorResponse, sendRedirect, setAuthCookies } from "../../utils/ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
+import { RequestUtils } from "../../utils/RequestUtils";
+import { Context } from "../../types/Context";
 
 export const CallbackHandler: HttpRequestHandlerConfig = {
   /**
    * @inheritdoc
    */
   isMatching(method: HttpMethod, path: string, context: Context) {
-    const _ = context.debugger.child('CallbackHandler -> isMatching', {method, path});
-    const match = method === 'GET' && path === getConfig().openid.callbackPath;
-    _.debug('Matching result', {match});
-
-    return match;
+    return RequestUtils.isMatching(
+      context.debugger.child('CallbackHandler -> isMatching()', {method, path}),
+      // request
+      method, path,
+      // expected
+      'GET', getConfig().openid.callbackPath,
+    );
   },
 
   /**
    * @inheritdoc
    */
   async handle(req: IncomingMessage, res: ServerResponse, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
-    const _ = context.debugger.child('CallbackHandler -> handle', {method, path});
+    const _ = context.debugger.child('CallbackHandler -> handle()', {method, path});
     let tokens = await OpenIDUtils.exchangeCode(req);
     _.debug('-> OpenIDUtils.exchangeCode()', { tokens });
     let metaToken: string;

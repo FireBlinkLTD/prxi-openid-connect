@@ -1,31 +1,33 @@
-import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from 'prxi';
-import { getConfig } from '../../config/getConfig';
-import { sendErrorResponse, sendRedirect } from '../../utils/Http2ResponseUtils';
-import { OpenIDUtils } from '../../utils/OpenIDUtils';
-import { JwtPayload, verify } from 'jsonwebtoken';
-import { RequestUtils } from '../../utils/RequestUtils';
-import { IncomingHttpHeaders, ServerHttp2Stream } from 'node:http2';
-import { prepareInvalidatedAuthCookies, prepareSetCookies } from '../../utils/ResponseUtils';
-import { Debugger } from '../../utils/Debugger';
-import { Context } from '../../types/Context';
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
+import { JwtPayload, verify } from "jsonwebtoken";
+import { RequestUtils } from "../../utils/RequestUtils";
+import { IncomingHttpHeaders, ServerHttp2Stream } from "node:http2";
+import { prepareInvalidatedAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
+import { Debugger } from "../../utils/Debugger";
+import { Context } from "../../types/Context";
 
 export class Http2LogoutHandler implements Http2RequestHandlerConfig {
   /**
    * @inheritdoc
    */
   public isMatching(method: HttpMethod, path: string, context: Context): boolean {
-    const _ = context.debugger.child('Http2LogoutHandler -> isMatching', {method, path});
-    const match = method === 'GET' && path === getConfig().logoutPath;
-    _.debug('Matching result', {match});
-
-    return match;
+    return RequestUtils.isMatching(
+      context.debugger.child('LogoutHandler -> isMatching()', {method, path}),
+      // request
+      method, path,
+      // expected
+      'GET', getConfig().paths.logout,
+    );
   }
 
   /**
    * @inheritdoc
    */
   public async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
-    const _ = context.debugger.child('Http2LogoutHandler -> handle', {method, path});
+    const _ = context.debugger.child('Http2LogoutHandler -> handle()', {method, path});
     const cookiesToSet = prepareSetCookies(prepareInvalidatedAuthCookies());
 
     let redirectTo = OpenIDUtils.getEndSessionUrl();

@@ -1,29 +1,31 @@
-import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from 'prxi';
-import { getConfig } from '../../config/getConfig';
-import { sendErrorResponse, sendRedirect } from '../../utils/Http2ResponseUtils';
-import { OpenIDUtils } from '../../utils/OpenIDUtils';
-import { RequestUtils } from '../../utils/RequestUtils';
-import { ServerHttp2Stream, IncomingHttpHeaders, constants } from 'node:http2';
-import { prepareAuthCookies, prepareSetCookies } from '../../utils/ResponseUtils';
-import { Context } from '../../types/Context';
+import { HttpMethod, ProxyRequest, Http2RequestHandlerConfig } from "prxi";
+import { getConfig } from "../../config/getConfig";
+import { sendErrorResponse, sendRedirect } from "../../utils/Http2ResponseUtils";
+import { OpenIDUtils } from "../../utils/OpenIDUtils";
+import { RequestUtils } from "../../utils/RequestUtils";
+import { ServerHttp2Stream, IncomingHttpHeaders, constants } from "node:http2";
+import { prepareAuthCookies, prepareSetCookies } from "../../utils/ResponseUtils";
+import { Context } from "../../types/Context";
 
 export const Http2CallbackHandler: Http2RequestHandlerConfig = {
   /**
    * @inheritdoc
    */
   isMatching(method: HttpMethod, path: string, context: Context) {
-    const _ = context.debugger.child('Http2CallbackHandler -> isMatching', {method, path});
-    const match = method === 'GET' && path === getConfig().openid.callbackPath;
-    _.debug('Matching result', { match })
-
-    return match;
+    return RequestUtils.isMatching(
+      context.debugger.child('Http2CallbackHandler -> isMatching()', {method, path}),
+      // request
+      method, path,
+      // expected
+      'GET', getConfig().openid.callbackPath,
+    );
   },
 
   /**
    * @inheritdoc
    */
   async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
-    const _ = context.debugger.child('Http2CallbackHandler -> handle', {method, path});
+    const _ = context.debugger.child('Http2CallbackHandler -> handle()', {method, path});
 
     let tokens = await OpenIDUtils.exchangeCode({
       url: headers[constants.HTTP2_HEADER_PATH].toString(),

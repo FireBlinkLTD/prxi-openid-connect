@@ -4,7 +4,7 @@ import { getConfig, updateConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
 import { start } from "../src/Server";
 import { prepareMapping } from "../src/config/Mapping";
-import {io} from 'socket.io-client';
+import {io} from "socket.io-client";
 import { serialize } from "cookie";
 import { Configuration } from "prxi";
 

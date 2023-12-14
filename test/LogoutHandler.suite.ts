@@ -16,7 +16,7 @@ export class BaseLogoutHandlerSuite extends BaseSuite {
       strictEqual(json.http.url, uri);
 
       // logout and try to access the same resource
-      await this.navigate(page, getConfig().hostURL + getConfig().logoutPath);
+      await this.navigate(page, getConfig().hostURL + getConfig().paths.logout);
       await this.navigate(page, getConfig().hostURL + uri);
       const text = await this.getTextFromPage(page);
       strictEqual(text, '401: Unauthorized');

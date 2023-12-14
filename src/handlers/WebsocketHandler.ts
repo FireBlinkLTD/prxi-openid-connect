@@ -1,20 +1,20 @@
-import { IncomingMessage } from 'node:http';
-import { Socket } from 'net';
-import { ProxyRequest, WebSocketHandlerConfig, WebSocketProxyCancelRequest } from 'prxi';
-import { Mapping } from '../config/Mapping';
-import { getConfig } from '../config/getConfig';
-import { RequestUtils } from '../utils/RequestUtils';
-import { JwtPayload, verify } from 'jsonwebtoken';
-import { JWTVerificationResult, OpenIDUtils } from '../utils/OpenIDUtils';
-import { Context } from 'mocha';
-import { Debugger } from '../utils/Debugger';
+import { IncomingMessage } from "node:http";
+import { Socket } from "net";
+import { ProxyRequest, WebSocketHandlerConfig, WebSocketProxyCancelRequest } from "prxi";
+import { Mapping } from "../config/Mapping";
+import { getConfig } from "../config/getConfig";
+import { RequestUtils } from "../utils/RequestUtils";
+import { JwtPayload, verify } from "jsonwebtoken";
+import { JWTVerificationResult, OpenIDUtils } from "../utils/OpenIDUtils";
+import { Context } from "mocha";
+import { Debugger } from "../utils/Debugger";
 
 export class WebSocketHandler implements WebSocketHandlerConfig {
   /**
    * @inheritdoc
    */
   public isMatching(path: string, context: Context): boolean {
-    const _ = context.debugger.child('WebSocketHandler -> isMatching', {path});
+    const _ = context.debugger.child('WebSocketHandler -> isMatching()', {path});
     context.wsMapping = this.findMatchingMapping(getConfig().mappings.ws, path);
     _.debug('Matching', {
       matching: !!context.wsMapping,
@@ -27,7 +27,7 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
    * @inheritdoc
    */
   public async handle(req: IncomingMessage, socket: Socket, head: Buffer, proxyRequest: ProxyRequest, cancelRequest: WebSocketProxyCancelRequest, path: string, context: Context): Promise<void> {
-    const _ = context.debugger.child('WebSocketHandler -> handle', {path});
+    const _ = context.debugger.child('WebSocketHandler -> handle()', {path});
     const cookies = RequestUtils.getCookies(req.headers);
     _.debug('-> RequestUtils.getCookies()', { cookies });
 

@@ -1,4 +1,4 @@
-import { HttpMethod } from 'prxi';
+import { HttpMethod } from "prxi";
 
 export interface Mapping {
   pattern: RegExp;

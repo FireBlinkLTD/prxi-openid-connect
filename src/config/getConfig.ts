@@ -1,6 +1,6 @@
-import { prepareMappings } from './Mapping';
-import { Config } from './Config';
-import { readFileSync } from 'node:fs';
+import { prepareMappings } from "./Mapping";
+import { Config } from "./Config";
+import { readFileSync } from "node:fs";
 
 /**
  * Convert snake_case to camelCase
@@ -69,9 +69,14 @@ export const getConfig = () => {
       logLevel: process.env.LOG_LEVEL || 'info',
       upstream: process.env.UPSTREAM_URL,
 
-      healthPath: process.env.HEALTH_PATH || '/_prxi_/health',
-      logoutPath: process.env.LOGOUT_PATH || '/_prxi_/logout',
-      loginPath: process.env.LOGIN_PATH || '/_prxi_/login',
+      paths: {
+        health: process.env.HEALTH_PATH || '/_prxi_/health',
+        logout: process.env.LOGOUT_PATH || '/_prxi_/logout',
+        login: process.env.LOGIN_PATH || '/_prxi_/login',
+        api: {
+          whoami: process.env.WHOAMI_API_PATH,
+        }
+      },
 
       hostURL: process.env.HOST_URL,
       openid: {

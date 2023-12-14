@@ -1,4 +1,4 @@
-import { Mapping } from './Mapping';
+import { Mapping } from "./Mapping";
 
 export interface Config {
   licenseConsent: boolean;
@@ -13,9 +13,14 @@ export interface Config {
   logLevel: string;
   upstream: string;
 
-  healthPath: string;
-  logoutPath: string;
-  loginPath: string;
+  paths: {
+    health: string;
+    logout: string;
+    login: string;
+    api: {
+      whoami?: string;
+    }
+  }
 
   hostURL: string;
   openid: {

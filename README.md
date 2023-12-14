@@ -67,7 +67,7 @@ All the `<property>` values will be converted from snake_case to camelCase.
 #### Mappings & JWT Claims Path
 
 - `JWT_AUTH_CLAIM_PATHS` - [optional] JSON object representing paths (array of strings) to obtain mappings from both Auth/ID token payloads.
-- `JWT_PROXY_CLAIM_PATHS` - [optional] JSON object representing paths (array of strings) to obtain mappings to extract from both Auth/ID token payloads. Value is passed as a JSON with the `HEADERS_CLAIMS_PROXY` header to the upstream service.
+- `JWT_PROXY_CLAIM_PATHS` - [optional] JSON object representing paths (array of strings) to obtain mappings to extract from both Auth/ID token payloads. Value is passed as a JSON with the `HEADERS_CLAIMS_PROXY` header to the upstream service and returned by the ["Who am I?" API](https://github.com/FireBlinkLTD/prxi-openid-connect/blob/main/docs/API.md#who-am-i). General usecase is to extract user related information like username, email, given name, etc.
 
 **Path example:**
 -
@@ -157,6 +157,10 @@ Example:
  - `reason: string` - [optional] reason to return instead of `Access denied`
  - `meta: Record<string, any>` - [optional] custom meta attributes associated to a user (make sure to use `JWT_META_TOKEN_SECRET` env variable to set secret and `HEADERS_META` to set the header name to proxy value in)
  - `redirectTo: string` - [optional] custom URL or relative path to redirect upon flow completion
+
+#### APIs
+
+prxi-openid-connect can optionally expose additional [API endpoint](https://github.com/FireBlinkLTD/prxi-openid-connect/blob/main/docs/API.md). Such APIs help to provide better UX, e.g. by hiding menu options that user can't access due to the permission restrictions.
 
 ## Links
 

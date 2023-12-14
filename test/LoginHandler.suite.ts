@@ -8,7 +8,7 @@ export class BaseLoginHandlerSuite extends BaseSuite {
   @test()
   async login() {
     const uri = '/api/test?q=str';
-    await this.withNewPage(getConfig().hostURL + getConfig().loginPath, async (page) => {
+    await this.withNewPage(getConfig().hostURL + getConfig().paths.login, async (page) => {
       await this.loginOnKeycloak(page);
 
       // make sure we can access the resource
@@ -21,7 +21,7 @@ export class BaseLoginHandlerSuite extends BaseSuite {
   @test()
   async loginWithCustomRedirect() {
     const uri = '/api/test?q=str';
-    await this.withNewPage(getConfig().hostURL + getConfig().loginPath + `?redirectTo=${encodeURIComponent(uri)}`, async (page) => {
+    await this.withNewPage(getConfig().hostURL + getConfig().paths.login + `?redirectTo=${encodeURIComponent(uri)}`, async (page) => {
       await this.loginOnKeycloak(page);
 
       // make sure we can access the resource
