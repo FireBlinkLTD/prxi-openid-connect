@@ -102,6 +102,7 @@ export const start = async (): Promise<Prxi> => {
         }
       },
       error(context, message, error, params) {
+        /* istanbul ignore else */
         if (context.debugger) {
           context.debugger.error(message, error, params);
         } else {

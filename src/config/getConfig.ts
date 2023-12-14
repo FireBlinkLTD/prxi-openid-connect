@@ -159,14 +159,20 @@ export const getConfig = () => {
  * @returns
  */
 export const getSanitizedConfig = () => {
+  const mask = (value: unknown): string | undefined => {
+    if (value) {
+      return '*****'
+    }
+  }
+
   const config = getConfig();
   return {
     ...config,
     openid : {
       ...config.openid,
-      clientSecret: config.openid.clientSecret ? '<truncated>' : undefined,
+      clientSecret: mask(config.openid.clientSecret),
     },
-    secure: config.secure ? '<truncated>' : undefined,
+    secure: mask(config.secure),
   }
 }
 
