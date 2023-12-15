@@ -21,21 +21,6 @@ abstract class BaseWhoamiAPIHandlerSuite extends BaseSuite {
     await super.after();
   }
 
-  private static sortNestedArrays(obj: Record<string, any>) {
-    for (const key of Object.keys(obj)) {
-      const field = obj[key];
-      if (field) {
-        if (Array.isArray(field)) {
-          field.sort();
-        } else {
-          if (typeof field === 'object') {
-            BaseWhoamiAPIHandlerSuite.sortNestedArrays(field);
-          }
-        }
-      }
-    }
-  }
-
   /**
    * Init mock server
    */
@@ -51,13 +36,9 @@ abstract class BaseWhoamiAPIHandlerSuite extends BaseSuite {
 
   @test()
   async authorized() {
-    await this.withNewPage(getConfig().hostURL + getConfig().paths.login, async (page) => {
-      await this.loginOnKeycloak(page);
-
-      // make sure we can access the resource
-      await this.navigate(page, getConfig().hostURL + getConfig().paths.api.whoami);
+    await this.withNewAuthenticatedPage(getConfig().hostURL + getConfig().paths.api.whoami, async (page) => {
       const json = await this.getJsonFromPage(page);
-      BaseWhoamiAPIHandlerSuite.sortNestedArrays(json);
+      this.sortNestedArrays(json);
 
       deepEqual(json, {
         anonymous: false,
@@ -103,7 +84,7 @@ abstract class BaseWhoamiAPIHandlerSuite extends BaseSuite {
       // make sure we can access the resource
       await this.navigate(page, getConfig().hostURL + getConfig().paths.api.whoami);
       const json = await this.getJsonFromPage(page);
-      BaseWhoamiAPIHandlerSuite.sortNestedArrays(json);
+      this.sortNestedArrays(json);
 
       deepEqual(json, {
         anonymous: false,
@@ -165,7 +146,7 @@ abstract class BaseWhoamiAPIHandlerSuite extends BaseSuite {
   async anonymous() {
     await this.withNewPage(getConfig().hostURL + getConfig().paths.api.whoami, async (page) => {
       const json = await this.getJsonFromPage(page);
-      BaseWhoamiAPIHandlerSuite.sortNestedArrays(json);
+      this.sortNestedArrays(json);
 
       deepEqual(json, {
         anonymous: true,

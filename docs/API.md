@@ -42,3 +42,42 @@ When user is not authenticated API response will look like the following:
   }
 }
 ```
+
+## Permissions
+
+An API endpoint that allows to check user permissions on specific resources.
+
+Environment variable: `PERMISSIONS_API_PATH`, example: `/_/api/whoami`
+
+`POST` request with an array of interested resources is expected in the body:
+
+```json
+[
+  {
+    // resource path
+    "path": "/a/b/c",
+    // resource method, GET, PUT, POST, PATCH, DELETE
+    "method": "GET"
+  }
+]
+```
+
+Response:
+
+```json
+{
+  // flag to determine if user is authenticated or not
+  "anonymous": true,
+  // list of the resources included in the request
+  "resources": [
+    {
+      // access allowance flag
+      "allowed": true,
+      // resource path
+      "path": "/a/b/c",
+      // resource method
+      "method": "GET"
+    }
+  ]
+}
+```

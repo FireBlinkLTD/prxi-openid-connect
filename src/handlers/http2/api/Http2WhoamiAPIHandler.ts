@@ -7,8 +7,9 @@ import { handleHttp2AuthenticationFlow } from "../../../utils/AccessUtils";
 import { sendJsonResponse } from "../../../utils/Http2ResponseUtils";
 import { IncomingHttpHeaders, ServerHttp2Stream } from "http2";
 import { prepareSetCookies } from "../../../utils/ResponseUtils";
+import { Http2BaseAccessHandler } from "./Http2BaseAccessHandler";
 
-export class Http2WhoamiAPIHandler implements Http2RequestHandlerConfig {
+export class Http2WhoamiAPIHandler extends Http2BaseAccessHandler {
   /**
    * @inheritdoc
    */
@@ -25,36 +26,16 @@ export class Http2WhoamiAPIHandler implements Http2RequestHandlerConfig {
   /**
    * @inheritdoc
    */
-  async handle(stream: ServerHttp2Stream, headers: IncomingHttpHeaders, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context) {
-    context.api = true;
-
+  async process(
+    stream: ServerHttp2Stream,
+    headers: IncomingHttpHeaders,
+    proxyRequest: ProxyRequest,
+    method: HttpMethod,
+    path: string,
+    context: Context,
+    cookiesToSet?: Record<string, {value: string, expires?: Date}>
+  ) {
     const _ = context.debugger.child('Http2WhoamiAPIHandler -> handle()', { context, headers, method, path });
-    const cookies = RequestUtils.getCookies(headers);
-    _.debug('-> RequestUtils.getCookies()', { cookies });
-
-    let metaPayload: Record<string, any> = null;
-    const metaToken = cookies[getConfig().cookies.names.meta];
-    if (metaToken) {
-      metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
-        complete: false,
-      });
-      _.debug('Meta cookie found', { metaPayload });
-    }
-
-    let { reject: breakFlow, cookiesToSet} = await handleHttp2AuthenticationFlow(
-      _.child('-> handleAuthenticationFlow()'),
-      stream,
-      headers,
-      cookies,
-      method,
-      path,
-      context,
-      metaPayload?.p
-    );
-    if (breakFlow) {
-      _.debug('Breaking upon authentication');
-      return;
-    }
 
     const auth = RequestUtils.extractAuthJWTClaims([
       context.accessTokenJWT,
@@ -74,7 +55,7 @@ export class Http2WhoamiAPIHandler implements Http2RequestHandlerConfig {
         auth,
         proxy,
       },
-      meta: metaPayload?.p,
+      meta: context.metaPayload,
     }, stream, {
       'Set-Cookie': prepareSetCookies(cookiesToSet)
     });

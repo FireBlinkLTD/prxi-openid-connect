@@ -1,12 +1,11 @@
-import { HttpMethod, HttpRequestHandlerConfig, ProxyRequest, Request, Response } from "prxi";
+import { HttpMethod, ProxyRequest, Request, Response } from "prxi";
 import { Context } from "../../../types/Context";
 import { getConfig } from "../../../config/getConfig";
 import { RequestUtils } from "../../../utils/RequestUtils";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { handleHttpAuthenticationFlow } from "../../../utils/AccessUtils";
 import { sendJsonResponse } from "../../../utils/ResponseUtils";
+import { BaseAccessHandler } from "./BaseAccessHandler";
 
-export class WhoamiAPIHandler implements HttpRequestHandlerConfig {
+export class WhoamiAPIHandler extends BaseAccessHandler {
   /**
    * @inheritdoc
    */
@@ -23,36 +22,8 @@ export class WhoamiAPIHandler implements HttpRequestHandlerConfig {
   /**
    * @inheritdoc
    */
-  async handle(req: Request, res: Response, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context): Promise<void> {
-    context.api = true;
-
-    const _ = context.debugger.child('WhoamiAPIHandler -> handle()', { context, headers: req.headers, method, path });
-    const cookies = RequestUtils.getCookies(req.headers);
-    _.debug('-> RequestUtils.getCookies()', { cookies });
-
-    let metaPayload: Record<string, any> = null;
-    const metaToken = cookies[getConfig().cookies.names.meta];
-    if (metaToken) {
-      metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
-        complete: false,
-      });
-      _.debug('Meta cookie found', { metaPayload });
-    }
-
-    const breakFlow = await handleHttpAuthenticationFlow(
-      _.child('-> handleAuthenticationFlow()'),
-      cookies,
-      req,
-      res,
-      method,
-      path,
-      context,
-      metaPayload?.p
-    );
-    if (breakFlow) {
-      _.debug('Breaking upon authentication');
-      return;
-    }
+  async process(req: Request, res: Response, proxyRequest: ProxyRequest, method: HttpMethod, path: string, context: Context): Promise<void> {
+    const _ = context.debugger.child('WhoamiAPIHandler -> process()', { context, headers: req.headers, method, path });
 
     const auth = RequestUtils.extractAuthJWTClaims([
       context.accessTokenJWT,
@@ -72,7 +43,7 @@ export class WhoamiAPIHandler implements HttpRequestHandlerConfig {
         auth,
         proxy,
       },
-      meta: metaPayload?.p,
+      meta: context.metaPayload
     }, res);
   }
 }

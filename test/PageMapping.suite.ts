@@ -8,8 +8,7 @@ class BasePageMappingSuite extends BaseSuite {
   @test()
   async pageEndpoint() {
     const uri = '/pages/test?q=str';
-    await this.withNewPage(getConfig().hostURL + uri, async (page) => {
-      await this.loginOnKeycloak(page);
+    await this.withNewAuthenticatedPage(getConfig().hostURL + uri, async (page) => {
       const json = await this.getJsonFromPage(page);
 
       // validate query to be in place
@@ -53,8 +52,7 @@ class BasePageMappingSuite extends BaseSuite {
   @test()
   async e403Endpoint() {
     const uri = '/forbidden-pages/test?q=str';
-    await this.withNewPage(getConfig().hostURL + uri, async (page) => {
-      await this.loginOnKeycloak(page);
+    await this.withNewAuthenticatedPage(getConfig().hostURL + uri, async (page) => {
       const url = page.url();
       ok(url.indexOf(getConfig().redirect.pageRequest.e403) === 0, `Actual URL: ${url}; Expected URL: ${getConfig().redirect.pageRequest.e403}`);
     });

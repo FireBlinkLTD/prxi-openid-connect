@@ -2,13 +2,15 @@ import 'dotenv/config';
 
 import { Config } from "../src/config/Config";
 import { getConfig, updateConfig } from "../src/config/getConfig";
-import puppeteer, { Page } from "puppeteer";
+import puppeteer, { Page, Protocol } from "puppeteer";
 import { start } from "../src/Server";
 import { Prxi } from "prxi";
 import { readFileSync } from "fs";
 import { resolve } from "path";
 import { context } from "@testdeck/mocha";
 import { Console } from "../src/utils/Console";
+import { FetchHelper } from './helpers/FetchHelper';
+import { serialize } from 'cookie';
 
 export class BaseSuite {
   private originalConfig: Config;
@@ -120,6 +122,21 @@ export class BaseSuite {
       status: resp.status,
       body: await resp.json()
     }
+  }
+
+  /**
+   * Open page and set authentication cookies
+   * @param url
+   * @param handler
+   * @param beforeNavigate
+   */
+  protected async withNewAuthenticatedPage(url: string, handler: (page: Page) => Promise<void>, beforeNavigate?: (page: Page) => Promise<void>): Promise<void> {
+    const authCookies = await this.loginAndGetAuthCookies();
+    await this.withNewPage(url, handler, async (page) => {
+      console.log('@AUTH COOKIES@', authCookies);
+      await page.setCookie(...authCookies);
+      await beforeNavigate?.(page);
+    })
   }
 
   /**
@@ -238,5 +255,58 @@ export class BaseSuite {
    */
   protected async getTextFromPage(page: Page): Promise<any> {
     return await page.evaluate(() => document.querySelector('pre').innerHTML);
+  }
+
+  /**
+   * Sort nested arrays
+   * @param obj
+   */
+  protected sortNestedArrays(obj: Record<string, any>) {
+    for (const key of Object.keys(obj)) {
+      const field = obj[key];
+      if (field) {
+        if (Array.isArray(field)) {
+          field.sort();
+        } else {
+          if (typeof field === 'object') {
+            this.sortNestedArrays(field);
+          }
+        }
+      }
+    }
+  }
+
+  /**
+   * Login and extract auth cookies from the page
+   * @returns
+   */
+  protected async loginAndGetAuthCookies(): Promise<Protocol.Network.Cookie[]> {
+    let result: Protocol.Network.Cookie[] = [];
+
+    await this.withNewPage(getConfig().hostURL + getConfig().paths.login, async (page) => {
+      await this.loginOnKeycloak(page);
+      const cookies = await page.cookies();
+      result = cookies.filter(c => {
+        return [
+          getConfig().cookies.names.accessToken,
+          getConfig().cookies.names.idToken,
+          getConfig().cookies.names.refreshToken,
+        ].indexOf(c.name) >= 0;
+      })
+    });
+
+    return result;
+  }
+
+  /**
+   * Make http post
+   * @param url
+   * @param body
+   * @param authCookies
+   */
+  protected async makePost(url: string, body: any, authCookies?: Partial<Protocol.Network.Cookie>[]): Promise<any> {
+    return new FetchHelper(this.mode, this.secure).post(url, body, {
+      'cookie': authCookies ? authCookies.map(c => serialize(c.name, c.value)).join('; ') : undefined,
+    })
   }
 }
