@@ -25,7 +25,7 @@ jobs:
         run: yarn
 
       - name: Run tests
-        run: yarn test:keycloak
+        run: script -e -c "yarn test:keycloak"
 
   docker_build_test:
     runs-on: ubuntu-latest

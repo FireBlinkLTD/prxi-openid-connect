@@ -39,7 +39,6 @@
   },
   "dependencies": {
     "@vrbo/pino-rotating-file": "^4.4.0",
-    "body-parser": "^1.20.2",
     "cookie": "^0.6.0",
     "dotenv": "^16.3.1",
     "jsonwebtoken": "^9.0.1",
@@ -52,13 +51,11 @@
   },
   "devDependencies": {
     "@testdeck/mocha": "^0.3.3",
-    "@types/body-parser": "^1.19.5",
     "@types/cookie": "^0.5.4",
     "@types/jsonwebtoken": "^9.0.2",
     "@types/jwk-to-pem": "^2.0.1",
     "@types/mocha": "^10.0.1",
     "@types/node": "^20.3.1",
-    "axios": "^1.4.0",
     "dev-echo-server": "^0.2.1",
     "mocha": "^10.2.0",
     "mochawesome": "^7.1.3",
