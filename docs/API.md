@@ -11,29 +11,29 @@ Environment variable: `WHOAMI_API_PATH`, example: `/_/api/whoami`
 
 `GET` request to the provided path will return the JSON response that will contain the following information:
 
-```json
+```yaml
 {
-  // flag to determine if user is authenticated or not
+  # flag to determine if user is authenticated or not
   "anonymous": false,
   "claims": {
-    // all the claims retrieved from Access and ID tokens based on the JWT_AUTH_CLAIM_PATHS configuration
+    # all the claims retrieved from Access and ID tokens based on the JWT_AUTH_CLAIM_PATHS configuration
     "auth": {
-      /* ... */
+      # ...
     },
-    // all the claims retrieved from Access and ID tokens based on the JWT_PROXY_CLAIM_PATHS configuration
+    # all the claims retrieved from Access and ID tokens based on the JWT_PROXY_CLAIM_PATHS configuration
     "proxy": {
-      /* ... */
+      # ...
     },
   },
 
-  // optional field, returns the meta information set by the webhook API upon the login action
+  # optional field, returns the meta information set by the webhook API upon the login action
   "meta": {}
 }
 ```
 
 When user is not authenticated API response will look like the following:
 
-```json
+```yaml
 {
   "anonymous": true,
   "claims": {
@@ -51,12 +51,12 @@ Environment variable: `PERMISSIONS_API_PATH`, example: `/_/api/whoami`
 
 `POST` request with an array of interested resources is expected in the body:
 
-```json
+```yaml
 [
   {
-    // resource path
+    # resource path
     "path": "/a/b/c",
-    // resource method, GET, PUT, POST, PATCH, DELETE
+    # resource method, GET, PUT, POST, PATCH, DELETE
     "method": "GET"
   }
 ]
@@ -64,18 +64,18 @@ Environment variable: `PERMISSIONS_API_PATH`, example: `/_/api/whoami`
 
 Response:
 
-```json
+```yaml
 {
-  // flag to determine if user is authenticated or not
+  # flag to determine if user is authenticated or not
   "anonymous": true,
-  // list of the resources included in the request
+  # list of the resources included in the request
   "resources": [
     {
-      // access allowance flag
+      # access allowance flag
       "allowed": true,
-      // resource path
+      # resource path
       "path": "/a/b/c",
-      // resource method
+      # resource method
       "method": "GET"
     }
   ]
