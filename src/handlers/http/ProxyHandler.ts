@@ -1,12 +1,12 @@
-import { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from "node:http";
-import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from "prxi";
-import { sendErrorResponse, sendRedirect } from "../../utils/ResponseUtils";
-import { getConfig } from "../../config/getConfig";
-import { JwtPayload, verify } from "jsonwebtoken";
-import { RequestUtils } from "../../utils/RequestUtils";
-import { Context } from "../../types/Context";
-import { Debugger } from "../../utils/Debugger";
-import { handleHttpAuthenticationFlow } from "../../utils/AccessUtils";
+import { IncomingMessage, OutgoingHttpHeaders, ServerResponse } from 'node:http';
+import { HttpMethod, ProxyRequest, HttpRequestHandlerConfig } from 'prxi';
+import { sendErrorResponse, sendRedirect } from '../../utils/ResponseUtils';
+import { getConfig } from '../../config/getConfig';
+import { JwtPayload, verify } from 'jsonwebtoken';
+import { RequestUtils } from '../../utils/RequestUtils';
+import { Context } from '../../types/Context';
+import { Debugger } from '../../utils/Debugger';
+import { handleHttpAuthenticationFlow } from '../../utils/AccessUtils';
 
 export class ProxyHandler implements HttpRequestHandlerConfig {
   /**

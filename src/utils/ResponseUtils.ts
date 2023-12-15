@@ -242,5 +242,8 @@ export const prepareSetCookies = (cookies: Record<string, {value: string, expire
         path: '/',
     }));
   }
+
+  if (!setCookies.length) return undefined;
+
   return setCookies;
 }

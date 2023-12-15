@@ -30,6 +30,8 @@ import { constants } from "node:http2";
 import { Console } from "./utils/Console";
 import { WhoamiAPIHandler } from "./handlers/http/api/WhoamiAPIHandler";
 import { Http2WhoamiAPIHandler } from './handlers/http2/api/Http2WhoamiAPIHandler';
+import { PermissionsAPIHandler } from './handlers/http/api/PermissionsAPIHandler';
+import { Http2PermissionsAPIHandler } from './handlers/http2/api/Http2PermissionsAPIHandler';
 
 /**
  * Start server
@@ -60,9 +62,15 @@ export const start = async (): Promise<Prxi> => {
 
   // Before request hook
   const beforeRequest = (mode: string, method: string, path: string, headers: IncomingHttpHeaders, context: Record<string, any>) => {
+    let enabled = isDebug;
+    /* istanbul ignore else */
+    if (isDebug && process.env.NODE_ENV === 'test' && path === '/favicon.ico') {
+      enabled = false;
+    }
+
     const requestId = (headers['x-correlation-id'] || headers['x-trace-id'] || headers['x-request-id'] || randomUUID()).toString();
     context.requestId = requestId;
-    context.debugger = new Debugger('Root', context.sessionId, requestId, isDebug);
+    context.debugger = new Debugger('Root', context.sessionId, requestId, enabled);
     logger.child({ requestId, _: {mode, path: path.split('?')[0], method} }).info('Processing request - start');
   }
 
@@ -165,6 +173,7 @@ export const start = async (): Promise<Prxi> => {
           new LoginHandler(),
           new LogoutHandler(),
           new WhoamiAPIHandler(),
+          new PermissionsAPIHandler(),
           CallbackHandler,
           new ProxyHandler(),
           E404Handler,
@@ -174,6 +183,7 @@ export const start = async (): Promise<Prxi> => {
           new Http2LoginHandler(),
           new Http2LogoutHandler(),
           new Http2WhoamiAPIHandler(),
+          new Http2PermissionsAPIHandler(),
           Http2CallbackHandler,
           new Http2ProxyHandler(),
           Http2E404Handler,

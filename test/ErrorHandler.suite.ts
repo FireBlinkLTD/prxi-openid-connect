@@ -11,9 +11,7 @@ class BaseErrorHandlerSuite extends BaseSuite {
       upstream: getConfig().upstream.replace(/:\/\/.*/g, '://localhost:65000'),
     })
 
-    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
-      await this.loginOnKeycloak(page);
-
+    await this.withNewAuthenticatedPage(getConfig().hostURL + '/pages/test', async (page) => {
       const text = await this.getTextFromPage(page);
       strictEqual(text, '503: Service Unavailable')
     });
@@ -31,9 +29,7 @@ class BaseErrorHandlerSuite extends BaseSuite {
       }
     })
 
-    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
-      await this.loginOnKeycloak(page);
-
+    await this.withNewAuthenticatedPage(getConfig().hostURL + '/pages/test', async (page) => {
       const json = await this.getJsonFromPage(page);
       strictEqual(json.http.url, '/api/test');
     });

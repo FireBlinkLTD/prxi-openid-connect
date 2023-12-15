@@ -1,10 +1,13 @@
 import { parse, serialize } from "cookie";
 import { IncomingHttpHeaders } from "node:http";
+import { ServerHttp2Stream } from "node:http2";
+import { Jwt } from "jsonwebtoken";
+import { HttpMethod, Request } from "prxi";
+import * as getRawBody from "raw-body";
+
+import { Debugger } from "./Debugger";
 import { Mapping } from "../config/Mapping";
 import { getConfig } from "../config/getConfig";
-import { Jwt } from "jsonwebtoken";
-import { Debugger } from "./Debugger";
-import { HttpMethod } from "prxi";
 
 export class RequestUtils {
   /**
@@ -255,5 +258,32 @@ export class RequestUtils {
 
     _.debug('No matches found');
     return null;
+  }
+
+  /**
+   * Read JSON
+   * @param req
+   * @param res
+   * @returns
+   */
+  static async readJsonBody<T>(req: Request | ServerHttp2Stream): Promise<T> {
+    return await new Promise<T>((resolve, reject) => {
+      getRawBody(req, {
+        limit: 128 * 1024,
+      }, (err: Error, body: Buffer) => {
+        if (err) {
+          return reject(err);
+        }
+
+        let json;
+        try {
+          json = JSON.parse(body.toString('utf-8'))
+        } catch (e) {
+          return reject(e);
+        }
+
+        resolve(json);
+      });
+    });
   }
 }

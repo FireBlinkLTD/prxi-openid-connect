@@ -13,9 +13,7 @@ class BaseApiMappingSuite extends BaseSuite {
     getConfig().headers.claims.auth.all = 'X-ALL-CLAIMS';
     getConfig().headers.claims.auth.matching = 'X-MATCHING-CLAIMS';
 
-    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
-      await this.loginOnKeycloak(page);
-      await this.navigate(page, getConfig().hostURL + uri);
+    await this.withNewAuthenticatedPage(getConfig().hostURL + uri, async (page) => {
       const json = await this.getJsonFromPage(page);
 
       // validate query to be in place
@@ -41,8 +39,7 @@ class BaseApiMappingSuite extends BaseSuite {
   async exclude() {
     const uri = '/api/exclude/test';
 
-    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
-      await this.loginOnKeycloak(page);
+    await this.withNewAuthenticatedPage(getConfig().hostURL + '/pages/test', async (page) => {
       await this.navigate(page, getConfig().hostURL + uri);
 
       const url = page.url();
@@ -57,8 +54,7 @@ class BaseApiMappingSuite extends BaseSuite {
     // add configuration for additional headers
     getConfig().cookies.proxyToUpstream = false;
 
-    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
-      await this.loginOnKeycloak(page);
+    await this.withNewAuthenticatedPage(getConfig().hostURL + '/pages/test', async (page) => {
       await page.setCookie(
         {
           name: 'test1',
@@ -100,8 +96,7 @@ class BaseApiMappingSuite extends BaseSuite {
       'Cookie': null,
     }
 
-    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
-      await this.loginOnKeycloak(page);
+    await this.withNewAuthenticatedPage(getConfig().hostURL + '/pages/test', async (page) => {
       await page.setCookie(
         {
           name: 'test1',
@@ -150,8 +145,7 @@ class BaseApiMappingSuite extends BaseSuite {
   @test()
   async e403() {
     const uri = '/forbidden-api/test?q=str';
-    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
-      await this.loginOnKeycloak(page);
+    await this.withNewAuthenticatedPage(getConfig().hostURL + '/pages/test', async (page) => {
       await this.navigate(page, getConfig().hostURL + uri);
       const text = await this.getTextFromPage(page);
 

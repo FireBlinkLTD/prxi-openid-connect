@@ -75,6 +75,7 @@ export const getConfig = () => {
         login: process.env.LOGIN_PATH || '/_prxi_/login',
         api: {
           whoami: process.env.WHOAMI_API_PATH,
+          permissions: process.env.PERMISSIONS_API_PATH,
         }
       },
 

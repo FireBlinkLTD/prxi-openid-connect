@@ -19,6 +19,7 @@ export interface Config {
     login: string;
     api: {
       whoami?: string;
+      permissions?: string;
     }
   }
 

@@ -9,6 +9,8 @@ export interface Context {
 
   debugger: Debugger;
 
+  metaPayload?: unknown,
+
   // ws proxy handler
   wsMapping: Mapping,
 
