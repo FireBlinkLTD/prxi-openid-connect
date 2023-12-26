@@ -1,6 +1,7 @@
-import { prepareMappings } from "./Mapping";
+import { prepareMappings, preparePattern } from "./Mapping";
 import { Config } from "./Config";
 import { readFileSync } from "node:fs";
+import getLogger from "../Logger";
 
 /**
  * Convert snake_case to camelCase
@@ -50,6 +51,107 @@ export const getSecureSettings = (): Record<string, string | number | Buffer> | 
   return Object.keys(secure).length ? secure : undefined;
 }
 
+let reloadEnabled = false;
+let reloadTimeout: NodeJS.Timeout = null;
+
+/**
+ * Init configuration
+ */
+export const initConfig = async (): Promise<void> => {
+  if (getConfig().dynamic.remote.enabled) {
+    reloadEnabled = true;
+    await fetchRemote();
+
+    // configuration reloading routine
+    const schedule = () => {
+      /* istanbul ignore else */
+      if (reloadEnabled) {
+        reloadTimeout = setTimeout(() => {
+          fetchRemote().then(() =>
+            process.nextTick(() => schedule())
+          );
+        }, getConfig().dynamic.remote.interval)
+      }
+    }
+
+    // to prevent method lock, start routine on the next tick
+    schedule();
+  }
+}
+
+/**
+ * Stop active configuration reloading routine
+ */
+export const stopConfigReload = (): void => {
+  reloadEnabled = false;
+  clearTimeout(reloadTimeout);
+  reloadTimeout = null;
+}
+
+/**
+ * Fetch remote
+ */
+export const fetchRemote = async (): Promise<void> => {
+  const log = getLogger('Config');
+
+  try {
+    log.child({ _: {endpoint: getConfig().dynamic.remote.endpoint} }).debug('Loading remote configuration');
+    const resp = await fetch(getConfig().dynamic.remote.endpoint, {
+      headers: {
+        Authorization: `Bearer ${getConfig().dynamic.remote.token}`,
+        'X-Prxi-Version': process.version,
+      }
+    });
+
+    /* istanbul ignore else */
+    if (resp.ok) {
+      const json = await resp.json();
+      log.child({_: {data: json}}).debug('Remote configuration loaded');
+
+      /* istanbul ignore else */
+      if (json.mappings) {
+        for (const mappings of Object.values<any[]>(json.mappings)) {
+          /* istanbul ignore else */
+          if (mappings) {
+            for (const mapping of mappings) {
+              mapping.pattern = preparePattern(mapping);
+              /* istanbul ignore else */
+              if (mapping.exclude) {
+                for (const excludeMapping of <any[]> mapping.exclude) {
+                  excludeMapping.pattern = preparePattern(excludeMapping);
+                }
+              }
+            }
+          }
+        }
+      }
+
+      let dynamic = config.dynamic;
+      config = {
+        ...config,
+        dynamic: {
+          ... dynamic,
+          ...json,
+          ... { remote: dynamic.remote },
+        }
+      }
+
+      /* istanbul ignore next */
+      config.dynamic.mappings.api = config.dynamic.mappings.api || [];
+      config.dynamic.mappings.pages = config.dynamic.mappings.pages || [];
+      config.dynamic.mappings.public = config.dynamic.mappings.public || [];
+      config.dynamic.mappings.ws = config.dynamic.mappings.ws || [];
+
+      // prepare patterns
+    } else {
+      log.child({_: {status: resp.status}}).error('Failed to load remote configuration');
+    }
+  } catch (e) {
+    /* istanbul ignore next */
+    log.child({_: {error: e}}).error('Unable to load remote configuration');
+  }
+}
+
 /**
  * Construct configuration object if not yet available
  * @returns
@@ -80,12 +182,37 @@ export const getConfig = () => {
       },
 
       hostURL: process.env.HOST_URL,
-      openid: {
-        discoverURL: process.env.OPENID_CONNECT_DISCOVER_URL,
-        callbackPath: process.env.OPENID_CALLBACK_PATH || '/_prxi_/callback',
-        clientId: process.env.OPENID_CLIENT_ID,
-        clientSecret: process.env.OPENID_CLIENT_SECRET,
-        scope: process.env.OPENID_SCOPE || 'openid email profile'
+
+      dynamic: {
+        version: 0,
+
+        remote: {
+          enabled: process.env.REMOTE_CONFIGURATION_ENABLED === 'true',
+          interval: +(process.env.REMOTE_CONFIGURATION_INTERVAL || '30') * 1000,
+          endpoint: process.env.REMOTE_CONFIGURATION_ENDPOINT,
+          token: process.env.REMOTE_CONFIGURATION_TOKEN,
+        },
+
+        openid: {
+          discoverURL: process.env.OPENID_CONNECT_DISCOVER_URL,
+          callbackPath: process.env.OPENID_CALLBACK_PATH || '/_prxi_/callback',
+          clientId: process.env.OPENID_CLIENT_ID,
+          clientSecret: process.env.OPENID_CLIENT_SECRET,
+          scope: process.env.OPENID_SCOPE || 'openid email profile'
+        },
+
+        mappings: {
+          public: prepareMappings(process.env.MAPPINGS_PUBLIC),
+          ws: prepareMappings(process.env.MAPPINGS_WS),
+          api: prepareMappings(process.env.MAPPINGS_API),
+          pages: prepareMappings(process.env.MAPPINGS_PAGES),
+        },
+
+        jwt: {
+          metaTokenSecret: process.env.JWT_META_TOKEN_SECRET,
+          authClaimPaths: process.env.JWT_AUTH_CLAIM_PATHS ? JSON.parse(process.env.JWT_AUTH_CLAIM_PATHS) : {},
+          proxyClaimPaths: process.env.JWT_PROXY_CLAIM_PATHS ? JSON.parse(process.env.JWT_PROXY_CLAIM_PATHS) : {},
+        },
       },
 
       headers: {
@@ -111,19 +238,6 @@ export const getConfig = () => {
           originalPath: process.env.COOKIES_ORIGINAL_PATH || 'prxi-op',
           meta: process.env.COOKIES_META || 'prxi-meta',
         }
-      },
-
-      mappings: {
-        public: prepareMappings(process.env.MAPPINGS_PUBLIC),
-        ws: prepareMappings(process.env.MAPPINGS_WS),
-        api: prepareMappings(process.env.MAPPINGS_API),
-        pages: prepareMappings(process.env.MAPPINGS_PAGES),
-      },
-
-      jwt: {
-        metaTokenSecret: process.env.JWT_META_TOKEN_SECRET,
-        authClaimPaths: process.env.JWT_AUTH_CLAIM_PATHS ? JSON.parse(process.env.JWT_AUTH_CLAIM_PATHS) : {},
-        proxyClaimPaths: process.env.JWT_PROXY_CLAIM_PATHS ? JSON.parse(process.env.JWT_PROXY_CLAIM_PATHS) : {},
       },
 
       redirect: {
@@ -169,10 +283,14 @@ export const getSanitizedConfig = () => {
   const config = getConfig();
   return {
     ...config,
-    openid : {
-      ...config.openid,
-      clientSecret: mask(config.openid.clientSecret),
+    dynamic: {
+      ...config.dynamic,
+      openid : {
+        ...config.dynamic.openid,
+        clientSecret: mask(config.dynamic.openid.clientSecret),
+      },
     },
+
     secure: mask(config.secure),
   }
 }

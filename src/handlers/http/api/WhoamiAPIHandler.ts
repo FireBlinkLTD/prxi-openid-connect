@@ -28,13 +28,13 @@ export class WhoamiAPIHandler extends BaseAccessHandler {
     const auth = RequestUtils.extractAuthJWTClaims([
       context.accessTokenJWT,
       context.idTokenJWT,
-    ], getConfig().jwt.authClaimPaths);
+    ], getConfig().dynamic.jwt.authClaimPaths);
     _.debug('-> RequestUtils.extractAuthJWTClaims()', { claims: auth });
 
     const proxy = RequestUtils.extractRawJWTClaims([
       context.accessTokenJWT,
       context.idTokenJWT,
-    ], getConfig().jwt.proxyClaimPaths);
+    ], getConfig().dynamic.jwt.proxyClaimPaths);
     _.debug('-> RequestUtils.extractRawJWTClaims()', { claims: proxy });
 
     sendJsonResponse(_, 200, {

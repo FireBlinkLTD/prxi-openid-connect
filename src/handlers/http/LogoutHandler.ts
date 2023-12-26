@@ -47,7 +47,7 @@ export class LogoutHandler implements HttpRequestHandlerConfig {
       let metaPayload: Record<string, any> = null;
       const metaToken = cookies[getConfig().cookies.names.meta];
       if (metaToken) {
-        metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
+        metaPayload = <JwtPayload> verify(metaToken, getConfig().dynamic.jwt.metaTokenSecret, {
           complete: false,
         });
       }

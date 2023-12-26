@@ -17,7 +17,7 @@ export const Http2CallbackHandler: Http2RequestHandlerConfig = {
       // request
       method, path,
       // expected
-      'GET', getConfig().openid.callbackPath,
+      'GET', getConfig().dynamic.openid.callbackPath,
     );
   },
 

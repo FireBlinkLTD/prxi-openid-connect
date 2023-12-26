@@ -18,7 +18,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     _.debug('Looking for public matches');
     context.mapping = RequestUtils.findMapping(
       _,
-      getConfig().mappings.public,
+      getConfig().dynamic.mappings.public,
       method,
       path
     );
@@ -33,7 +33,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     _.debug('Looking for API matches');
     context.mapping = RequestUtils.findMapping(
       _,
-      getConfig().mappings.api,
+      getConfig().dynamic.mappings.api,
       method,
       path
     );
@@ -48,7 +48,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     _.debug('Looking for page matches');
     context.mapping = RequestUtils.findMapping(
       _,
-      getConfig().mappings.pages,
+      getConfig().dynamic.mappings.pages,
       method,
       path
     );
@@ -86,7 +86,7 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     let metaPayload: Record<string, any> = null;
     const metaToken = cookies[getConfig().cookies.names.meta];
     if (metaToken) {
-      metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
+      metaPayload = <JwtPayload> verify(metaToken, getConfig().dynamic.jwt.metaTokenSecret, {
         complete: false,
       });
       _.debug('Meta cookie found', { metaPayload });
@@ -163,6 +163,10 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     await proxyRequest({
       proxyRequestHeaders,
       onBeforeResponse: (res: ServerResponse, outgoingHeaders: OutgoingHttpHeaders) => {
+        if (getConfig().headers.responseConfigVersion) {
+          outgoingHeaders[getConfig().headers.responseConfigVersion] = getConfig().dynamic.version.toString();
+        }
+
         const d = _.child('-> proxyRequest -> onBeforeResponse', { outgoingHeaders });
         const setCookieName = 'set-cookie';
         const setCookieHeader = res.getHeader(setCookieName);

@@ -69,7 +69,7 @@ export class RequestUtils {
     idTokenJWT: Jwt,
     mapping: Mapping
   ): {auth: {all: Record<string, string[]>, matching: Record<string, string[]>}, proxy: Record<string, any>} | false {
-    const { authClaimPaths } = getConfig().jwt;
+    const { authClaimPaths } = getConfig().dynamic.jwt;
     const { auth } = mapping;
 
     const matchingAuthClaims: Record<string, string[]> = {};
@@ -105,7 +105,7 @@ export class RequestUtils {
       const proxy = RequestUtils.extractRawJWTClaims([
         accessTokenJWT,
         idTokenJWT,
-      ], getConfig().jwt.proxyClaimPaths);
+      ], getConfig().dynamic.jwt.proxyClaimPaths);
 
       return {
         auth: {

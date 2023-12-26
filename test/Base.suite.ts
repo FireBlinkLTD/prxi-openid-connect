@@ -77,7 +77,7 @@ export class BaseSuite {
     }
 
     if (this.secure) {
-      getConfig().openid.clientId = getConfig().openid.clientId + '_secure';
+      getConfig().dynamic.openid.clientId = getConfig().dynamic.openid.clientId + '_secure';
 
       // update cookie settings
       getConfig().cookies.secure = true;
@@ -133,7 +133,6 @@ export class BaseSuite {
   protected async withNewAuthenticatedPage(url: string, handler: (page: Page) => Promise<void>, beforeNavigate?: (page: Page) => Promise<void>): Promise<void> {
     const authCookies = await this.loginAndGetAuthCookies();
     await this.withNewPage(url, handler, async (page) => {
-      console.log('@AUTH COOKIES@', authCookies);
       await page.setCookie(...authCookies);
       await beforeNavigate?.(page);
     })

@@ -24,13 +24,38 @@ export interface Config {
   }
 
   hostURL: string;
-  openid: {
-    discoverURL: string;
-    callbackPath: string;
-    clientId: string;
-    clientSecret: string;
-    scope: string;
-  };
+
+  dynamic: {
+    version: number,
+
+    remote: {
+      enabled: boolean;
+      interval: number;
+      endpoint?: string;
+      token?: string;
+    }
+
+    openid: {
+      discoverURL: string;
+      callbackPath: string;
+      clientId: string;
+      clientSecret: string;
+      scope: string;
+    };
+
+    mappings: {
+      public: Mapping[];
+      api: Mapping[];
+      pages: Mapping[];
+      ws: Mapping[];
+    },
+
+    jwt: {
+      metaTokenSecret?: string;
+      authClaimPaths: Record<string, string[]>,
+      proxyClaimPaths: Record<string, string[]>;
+    },
+  }
 
   headers: {
     meta?: string;
@@ -41,6 +66,7 @@ export interface Config {
       },
       proxy: string,
     },
+    responseConfigVersion?: string;
     request?: Record<string, string | string[] | null>;
     response?: Record<string, string | string[] | null>;
   }
@@ -55,19 +81,6 @@ export interface Config {
       originalPath: string;
       meta: string;
     }
-  },
-
-  mappings: {
-    public: Mapping[];
-    api: Mapping[];
-    pages: Mapping[];
-    ws: Mapping[];
-  },
-
-  jwt: {
-    metaTokenSecret?: string;
-    authClaimPaths: Record<string, string[]>,
-    proxyClaimPaths: Record<string, string[]>;
   },
 
   redirect: {

@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "mappings": {
+    "api": [
+      {
+        "pattern": ".*",
+        "exclude": [
+          {
+            "pattern": ".*"
+          }
+        ]
+      }
+    ]
+  }
+}

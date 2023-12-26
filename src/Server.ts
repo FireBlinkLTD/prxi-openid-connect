@@ -3,7 +3,7 @@ import 'dotenv/config';
 import { Prxi } from "prxi";
 import { onShutdown } from "node-graceful-shutdown";
 
-import { getConfig, getSanitizedConfig } from "./config/getConfig";
+import { getConfig, getSanitizedConfig, initConfig, stopConfigReload } from "./config/getConfig";
 
 import getLogger from "./Logger";
 import { CallbackHandler } from "./handlers/http/CallbackHandler";
@@ -40,8 +40,9 @@ import { Http2PermissionsAPIHandler } from './handlers/http2/api/Http2Permission
  */
 export const start = async (): Promise<Prxi> => {
   const logger = getLogger('Server');
-  const config = getConfig();
+  await initConfig();
 
+  const config = getConfig();
   logger.child({config: getSanitizedConfig()}).debug('Configuration');
 
   /* istanbul ignore next */
@@ -203,6 +204,8 @@ export const start = async (): Promise<Prxi> => {
   /* istanbul ignore next */
   if (process.env.NODE_ENV !== 'test') {
     onShutdown(async () => {
+      stopConfigReload();
+
       logger.info('Gracefully shutting down the server');
       await prxi.stop();
     });

@@ -90,9 +90,9 @@ export class Http2PermissionsAPIHandler extends Http2BaseAccessHandler {
 
     // process
     const mappings = [
-      getConfig().mappings.public,
-      getConfig().mappings.api,
-      getConfig().mappings.pages,
+      getConfig().dynamic.mappings.public,
+      getConfig().dynamic.mappings.api,
+      getConfig().dynamic.mappings.pages,
     ];
 
     const resources: Resource[] = [];

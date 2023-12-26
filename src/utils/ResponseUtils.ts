@@ -209,6 +209,10 @@ export const sendJsonResponse = async (_: Debugger, statusCode: number, json: an
  * @param resp
  */
 const sendResponse = async (_: Debugger, statusCode: number, contentType: string, content: any, resp: Response): Promise<void> => {
+  if (getConfig().headers.responseConfigVersion) {
+    resp.setHeader(getConfig().headers.responseConfigVersion, getConfig().dynamic.version);
+  }
+
   _.debug('Sending response', { content, statusCode, headers: resp.getHeaders(), contentType });
   resp.statusCode = statusCode;
   resp.setHeader('content-type', contentType);

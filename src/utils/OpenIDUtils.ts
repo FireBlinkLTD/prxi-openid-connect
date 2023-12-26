@@ -25,13 +25,13 @@ export class OpenIDUtils {
   static async init(): Promise<void> {
     const logger = OpenIDUtils.logger = getLogger('OpenIDUtils');
     logger.child({
-      configuration: getConfig().openid
+      configuration: getConfig().dynamic.openid
     }).debug('Init OpenID Utils');
 
-    OpenIDUtils.issuer = await Issuer.discover(getConfig().openid.discoverURL);
+    OpenIDUtils.issuer = await Issuer.discover(getConfig().dynamic.openid.discoverURL);
     OpenIDUtils.client = new OpenIDUtils.issuer.Client({
-      client_id: getConfig().openid.clientId,
-      client_secret: getConfig().openid.clientSecret,
+      client_id: getConfig().dynamic.openid.clientId,
+      client_secret: getConfig().dynamic.openid.clientSecret,
       redirect_uris: [OpenIDUtils.getRedirectURL()],
       response_types: ['code'],
     });
@@ -130,12 +130,12 @@ export class OpenIDUtils {
    * @returns
    */
   public static prepareMetaToken(payload: Record<string, any>): string {
-    if (!getConfig().jwt.metaTokenSecret) {
+    if (!getConfig().dynamic.jwt.metaTokenSecret) {
       OpenIDUtils.logger.error('JWT_META_TOKEN_SECRET environment variable is not provided, could not generate custom user attributes JWT for provided metadata');
       throw new Error('JWT_META_TOKEN_SECRET configuration is missing');
     }
 
-    return sign({p: payload}, getConfig().jwt.metaTokenSecret, {
+    return sign({p: payload}, getConfig().dynamic.jwt.metaTokenSecret, {
       expiresIn: '5y'
     });
   }
@@ -155,7 +155,7 @@ export class OpenIDUtils {
    * @returns
    */
   private static getRedirectURL(): string {
-    return `${getConfig().hostURL}${getConfig().openid.callbackPath}`;
+    return `${getConfig().hostURL}${getConfig().dynamic.openid.callbackPath}`;
   }
 
   /**
