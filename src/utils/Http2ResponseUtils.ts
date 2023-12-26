@@ -1,6 +1,7 @@
 import { IncomingHttpHeaders } from "node:http";
 import { ServerHttp2Stream, constants } from "node:http2";
 import { Debugger } from "./Debugger";
+import { getConfig } from "../config/getConfig";
 
 const emptyObj = {};
 
@@ -75,6 +76,10 @@ export const sendErrorResponse = async (_: Debugger, stream: ServerHttp2Stream, 
  * @param stream
  */
 export const sendJsonResponse = async (_: Debugger, statusCode: number, json: any, stream: ServerHttp2Stream, headers?: Record<string, string | string[]>): Promise<void> => {
+  if (getConfig().headers.responseConfigVersion) {
+    headers[getConfig().headers.responseConfigVersion] = getConfig().dynamic.version.toString();
+  }
+
   _.debug('Sending JSON response', { json });
   await sendResponse(_, statusCode, 'application/json', JSON.stringify(json), stream, headers);
 }

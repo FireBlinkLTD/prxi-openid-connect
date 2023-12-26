@@ -1,6 +1,4 @@
 #!/bin/sh
-set -e
-
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 # navigate 1 level up the script dir
@@ -27,10 +25,11 @@ sleep 1
 # run tests
 export NODE_ENV=test
 yarn test
+code=$?
 
 kill $echoPID
 
 # stop docker-compose
 docker-compose down
 
-
+exit $code

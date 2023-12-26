@@ -2,20 +2,18 @@ import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { strictEqual } from "assert";
-
-const OpenApiMocker = require('open-api-mocker');
+import { MockServer } from "./mock/MockServer";
 
 class BaseWebhookHandlerSuite extends BaseSuite {
-  private mockServer: any;
+  private mockServer: MockServer;
 
-  private static mockPort = 7777;
-  private static rejectURL = `http://localhost:${BaseWebhookHandlerSuite.mockPort}/reject`;
-  private static loginFailure = `http://localhost:${BaseWebhookHandlerSuite.mockPort}/login-fail`;
-  private static redirectToURL = `http://localhost:${BaseWebhookHandlerSuite.mockPort}/redirectTo`;
-  private static refreshToken = `http://localhost:${BaseWebhookHandlerSuite.mockPort}/refreshToken`;
-  private static logout = `http://localhost:${BaseWebhookHandlerSuite.mockPort}/logout`;
-  private static logoutFailure = `http://localhost:${BaseWebhookHandlerSuite.mockPort}/logout-fail`;
-  private static metaURL = `http://localhost:${BaseWebhookHandlerSuite.mockPort}/meta`;
+  private static rejectURL = `http://localhost:${MockServer.port}/reject`;
+  private static loginFailure = `http://localhost:${MockServer.port}/login-fail`;
+  private static redirectToURL = `http://localhost:${MockServer.port}/redirectTo`;
+  private static refreshToken = `http://localhost:${MockServer.port}/refreshToken`;
+  private static logout = `http://localhost:${MockServer.port}/logout`;
+  private static logoutFailure = `http://localhost:${MockServer.port}/logout-fail`;
+  private static metaURL = `http://localhost:${MockServer.port}/meta`;
 
   public async before() {
     await this.initMockServer();
@@ -23,7 +21,7 @@ class BaseWebhookHandlerSuite extends BaseSuite {
   }
 
   public async after() {
-    this.mockServer?.shutdown();
+    this.mockServer?.stop();
     this.mockServer = null;
     await super.after();
   }
@@ -32,13 +30,9 @@ class BaseWebhookHandlerSuite extends BaseSuite {
    * Init mock server
    */
   private async initMockServer(): Promise<void> {
-    const mocker = this.mockServer = new OpenApiMocker({
-      port: BaseWebhookHandlerSuite.mockPort,
-      schema: 'test/assets/webhook/mock.yml',
-    });
+    const mocker = this.mockServer = new MockServer();
 
-    await mocker.validate();
-    await mocker.mock();
+    await mocker.start();
   }
 
   @test()

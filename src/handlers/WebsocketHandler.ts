@@ -15,7 +15,7 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
    */
   public isMatching(path: string, context: Context): boolean {
     const _ = context.debugger.child('WebSocketHandler -> isMatching()', {path});
-    context.wsMapping = this.findMatchingMapping(getConfig().mappings.ws, path);
+    context.wsMapping = this.findMatchingMapping(getConfig().dynamic.mappings.ws, path);
     _.debug('Matching', {
       matching: !!context.wsMapping,
     })
@@ -57,7 +57,7 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
     let metaPayload: Record<string, any> = null;
     const metaToken = cookies[getConfig().cookies.names.meta];
     if (metaToken) {
-      metaPayload = <JwtPayload> verify(metaToken, getConfig().jwt.metaTokenSecret, {
+      metaPayload = <JwtPayload> verify(metaToken, getConfig().dynamic.jwt.metaTokenSecret, {
         complete: false,
       });
       _.debug('Meta token found', { metaPayload });

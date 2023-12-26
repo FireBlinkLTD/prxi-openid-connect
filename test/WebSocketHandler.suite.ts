@@ -39,7 +39,7 @@ class BaseWebSocketSuite extends BaseSuite {
     //getConfig().upstream = 'http://localhost:4444';
 
     if (secure) {
-      getConfig().mappings.pages.push(
+      getConfig().dynamic.mappings.pages.push(
         prepareMapping({
           pattern: '/socket.io',
           auth: {
@@ -52,7 +52,7 @@ class BaseWebSocketSuite extends BaseSuite {
         })
       );
     } else {
-      getConfig().mappings.public.push(
+      getConfig().dynamic.mappings.public.push(
         prepareMapping({
           pattern: '/socket.io'
         })

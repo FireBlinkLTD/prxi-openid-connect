@@ -44,7 +44,12 @@ export const prepareMappings = (value: string): Mapping[] => {
   return result;
 }
 
-const preparePattern = (value: {pattern?: string}): RegExp => {
+/**
+ * Prepare pattern
+ * @param value
+ * @returns
+ */
+export const preparePattern = (value: {pattern?: string}): RegExp => {
   let { pattern } = value;
   /* istanbul ignore next */
   if (!pattern) {

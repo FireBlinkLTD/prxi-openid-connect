@@ -3,12 +3,11 @@ import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { deepEqual, strictEqual } from "assert";
 import { sign } from "jsonwebtoken";
-
-const OpenApiMocker = require('open-api-mocker');
+import { MockServer } from "./mock/MockServer";
 
 abstract class BaseWhoamiAPIHandlerSuite extends BaseSuite {
-  private static metaURL = 'http://localhost:7777/meta';
-  private mockServer: any;
+  private static metaURL = `http://localhost:${MockServer.port}/meta`;
+  private mockServer: MockServer;
 
   public async before() {
     await this.initMockServer();
@@ -16,7 +15,7 @@ abstract class BaseWhoamiAPIHandlerSuite extends BaseSuite {
   }
 
   public async after() {
-    this.mockServer?.shutdown();
+    this.mockServer?.stop();
     this.mockServer = null;
     await super.after();
   }
@@ -25,13 +24,8 @@ abstract class BaseWhoamiAPIHandlerSuite extends BaseSuite {
    * Init mock server
    */
   private async initMockServer(): Promise<void> {
-    const mocker = this.mockServer = new OpenApiMocker({
-      port: 7777,
-      schema: 'test/assets/webhook/mock.yml',
-    });
-
-    await mocker.validate();
-    await mocker.mock();
+    const mocker = this.mockServer = new MockServer();
+    await mocker.start();
   }
 
   @test()
