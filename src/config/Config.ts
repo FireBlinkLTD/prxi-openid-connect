@@ -3,15 +3,25 @@ import { Mapping } from "./Mapping";
 export interface Config {
   licenseConsent: boolean;
 
-  mode: 'HTTP' | 'HTTP2',
+  log: {
+    level: string;
+    pretty: boolean;
+    file?: string;
+    rotate: {
+      datePattern: string,
+      maxSize: string,
+      maxFiles: string,
+    }
+  };
 
+  mode: 'HTTP' | 'HTTP2',
   secure?: Record<string, string | number | Buffer>
 
   port: number;
   hostname?: string;
   proxyRequestTimeout?: number;
-  logLevel: string;
   upstream: string;
+
 
   paths: {
     health: string;

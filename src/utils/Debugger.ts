@@ -1,4 +1,4 @@
-import { Logger } from "pino";
+import { Logger } from "winston";
 import getLogger from "../Logger";
 
 export type DebugEvent = {

@@ -162,13 +162,23 @@ export const getConfig = () => {
     config = {
       licenseConsent: process.env.LICENSE_CONSENT === 'true',
 
+      log: {
+        level: process.env.LOG_LEVEL || 'info',
+        pretty: process.env.LOG_PRETTY === 'true',
+        file: process.env.LOG_FILE,
+        rotate: {
+          datePattern: process.env.LOG_ROTATE_DATE_PATTERN || 'YYYY-MM-DD_HH',
+          maxSize: process.env.LOG_ROTATE_MAX_SIZE || '100m',
+          maxFiles: process.env.LOG_ROTATE_MAX_FILES || '5',
+        },
+      },
+
       mode: (<'HTTP' | 'HTTP2'> process.env.MODE) || 'HTTP',
       secure: getSecureSettings(),
 
       port: parseInt(process.env.PORT || '3000'),
       hostname: process.env.HOSTNAME,
       proxyRequestTimeout: process.env.PROXY_REQUEST_TIMEOUT ? parseInt(process.env.PROXY_REQUEST_TIMEOUT) : undefined,
-      logLevel: process.env.LOG_LEVEL || 'info',
       upstream: process.env.UPSTREAM_URL,
 
       paths: {

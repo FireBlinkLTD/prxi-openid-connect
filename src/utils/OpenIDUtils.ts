@@ -4,7 +4,7 @@ import { getConfig } from "../config/getConfig";
 import { IncomingMessage } from "node:http";
 import jwkToBuffer = require('jwk-to-pem');
 import { Jwt, verify, sign, decode } from "jsonwebtoken";
-import { Logger } from "pino";
+import { Logger } from "winston";
 
 export enum JWTVerificationResult {
   MISSING = -1,

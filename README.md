@@ -32,12 +32,14 @@ In addition upon every login, logout or token refresh action prxi-openid-connect
 
 #### Logs
 
-| Name              | Required | Default Value                        | Description |
-|-------------------|----------|--------------------------------------|-------------|
-| `LOG_LEVEL`       | No       | `info`                               | Log level |
-| `LOG_FILE`        | No       | `/prxi/logs/prxi-openid-connect.log` | Log file path |
-| `LOG_FILE_SIZE`   | No       | `10M`                                | Maximum log file size |
-| `LOG_FILE_ROTATE` | No       | `5`                                  | Maximum number of files to keep after log rotation |
+| Name                      | Required | Default Value      | Description |
+|---------------------------|----------|--------------------|-------------|
+| `LOG_LEVEL`               | No       | `info`             | Log level |
+| `LOG_FILE`                | No       |                    | Log file path |
+| `LOG_ROTATE_DATE_PATTERN` | No       | `YYYY-MM-DD_HH` | Log rotation `%DATE%` format |
+| `LOG_ROTATE_MAX_SIZE`     | No       | `100m`              | Maximum size of the file after which it will rotate. This can be a number of bytes, or units of kb, mb, and gb. If using the units, add 'k', 'm', or 'g' as the suffix. The units need to directly follow the number. |
+| `LOG_ROTATE_MAX_FILES`    | No       | `5`                | Maximum number of logs to keep. If not set, no logs will be removed. This can be a number of files or number of days. If using days, add 'd' as the suffix. It uses auditFile to keep track of the log files in a json format. It won't delete any file not contained in it. It can be a number of files or number of days |
+| `LOG_PRETTY`              | No       | `false`            | If set to `true`, human readable formatting will be used instead of a JSON |
 
 #### Prxi Request Paths
 

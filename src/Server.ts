@@ -59,7 +59,7 @@ export const start = async (): Promise<Prxi> => {
     throw new Error('Unable to start, license consent is not provided.');
   }
 
-  const isDebug = config.logLevel.toLowerCase() === 'debug';
+  const isDebug = config.log.level.toLowerCase() === 'debug';
 
   // Before request hook
   const beforeRequest = (mode: string, method: string, path: string, headers: IncomingHttpHeaders, context: Record<string, any>) => {
