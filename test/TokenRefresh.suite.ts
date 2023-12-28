@@ -1,7 +1,8 @@
 import { suite, test } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
-import { strictEqual } from "assert";
+import { ok, strictEqual } from "assert";
+import { Constants } from "../src/types/Constants";
 
 class BaseTokenRefreshSuite extends BaseSuite {
   @test()
@@ -148,6 +149,51 @@ class BaseTokenRefreshSuite extends BaseSuite {
       await this.navigate(page, getConfig().hostURL + uri);
       const text = await this.getTextFromPage(page);
       strictEqual(text, '401: Unauthorized');
+    });
+  }
+
+  @test()
+  async headerBased() {
+    const uri = '/api/test?q=str';
+
+    await this.withNewPage(getConfig().hostURL + '/pages/test', async (page) => {
+      await this.loginOnKeycloak(page);
+
+      await this.navigate(page, getConfig().hostURL + uri);
+      let json = await this.getJsonFromPage(page);
+      strictEqual(json.http.url, uri);
+
+      const oldCookies = await page.cookies();
+
+      await page.setExtraHTTPHeaders({
+        'x-add-headers': JSON.stringify({
+          [Constants.HEADER_X_PRXI_REFRESH_TOKENS.toUpperCase()]: 'true',
+        })
+      })
+
+      await this.navigate(page, getConfig().hostURL + uri);
+      json = await this.getJsonFromPage(page);
+      strictEqual(json.http.url, uri);
+
+      const newCookies = await page.cookies();
+
+      const newAccessToken = newCookies.find(c => c.name === getConfig().cookies.names.accessToken);
+      const oldAccessToken = oldCookies.find(c => c.name === getConfig().cookies.names.accessToken);
+      ok(newAccessToken);
+      ok(oldAccessToken);
+      ok(newAccessToken.value !== oldAccessToken.value)
+
+      const newIdToken = newCookies.find(c => c.name === getConfig().cookies.names.idToken);
+      const oldIdToken = oldCookies.find(c => c.name === getConfig().cookies.names.idToken);
+      ok(newIdToken);
+      ok(oldIdToken);
+      ok(newIdToken.value !== oldIdToken.value);
+
+      const newRefreshToken = newCookies.find(c => c.name === getConfig().cookies.names.refreshToken);
+      const oldRefreshToken = oldCookies.find(c => c.name === getConfig().cookies.names.refreshToken);
+      ok(newRefreshToken);
+      ok(oldRefreshToken);
+      ok(newRefreshToken.value !== oldRefreshToken.value);
     });
   }
 }

@@ -8,6 +8,59 @@ import * as Http2ResponseUtils from "./Http2ResponseUtils";
 import { IncomingHttpHeaders, ServerHttp2Stream, constants } from "http2";
 
 /**
+ * Refresh tokens
+ * @param _
+ * @param res
+ * @param cookies
+ * @param context
+ * @param metaPayload
+ * @returns
+ */
+export const refreshTokens = async (
+  _: Debugger,
+  res: Response,
+  cookies: Record<string, string>,
+  context: Context,
+  metaPayload: Record<string, any>,
+): Promise<JWTVerificationResult> => {
+  let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.refreshToken];
+  let accessTokenVerificationResult = JWTVerificationResult.MISSING;
+
+  try {
+    _.debug('Refreshing token', { refreshToken });
+    const tokens = await OpenIDUtils.refreshTokens(refreshToken);
+    _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
+
+    let metaToken;
+    if (metaPayload) {
+      metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
+      _.debug('Meta token prepared', { metaToken });
+    }
+
+    HttpResponseUtils.setAuthCookies(res, tokens, metaToken);
+
+    const accessToken = context.accessToken = tokens.access_token;
+    const idToken = context.idToken = tokens.id_token;
+    refreshToken = context.refreshToken = tokens.refresh_token;
+
+    const accessVerification = await OpenIDUtils.parseTokenAndVerify(accessToken);
+    const idVerification = await OpenIDUtils.parseTokenAndVerify(idToken);
+    accessTokenVerificationResult = accessVerification.verificationResult;
+
+    context.accessTokenJWT = accessVerification.jwt;
+    context.idTokenJWT = idVerification.jwt;
+  } catch (e) {
+    _.error(`Unable to refresh token`, e);
+
+    context.accessToken = null;
+    context.idToken = null;
+    context.refreshToken = null;
+  }
+
+  return accessTokenVerificationResult;
+}
+
+/**
  * Handle HTTP/1.1 authentication flow
  * @param _
  * @param cookies
@@ -54,38 +107,17 @@ export const handleHttpAuthenticationFlow = async(
       idTokenVerificationResult === JWTVerificationResult.EXPIRED
     )
   ) {
-    try {
-      _.debug('Refreshing token', { refreshToken, accessTokenVerificationResult, idTokenVerificationResult });
-      const tokens = await OpenIDUtils.refreshTokens(refreshToken);
-      _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
+    accessTokenVerificationResult = await refreshTokens(
+      _,
+      res,
+      cookies,
+      context,
+      metaPayload,
+    )
 
-      let metaToken;
-      if (metaPayload) {
-        metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
-        _.debug('Meta token prepared', { metaToken });
-      }
-
-      HttpResponseUtils.setAuthCookies(res, tokens, metaToken);
-
-      accessToken = context.accessToken = tokens.access_token;
-      idToken = context.idToken = tokens.id_token;
-      refreshToken = context.refreshToken = tokens.refresh_token;
-
-      const accessVerification = await OpenIDUtils.parseTokenAndVerify(accessToken);
-      const idVerification = await OpenIDUtils.parseTokenAndVerify(idToken);
-      accessTokenVerificationResult = accessVerification.verificationResult;
-
-      context.accessTokenJWT = accessVerification.jwt;
-      context.idTokenJWT = idVerification.jwt;
-    } catch (e) {
-      _.error(`Unable to refresh token`, e);
-
-      accessToken = context.accessToken = null;
-      idToken = context.idToken = null;
-      refreshToken = context.refreshToken = null;
-
-      accessTokenVerificationResult = JWTVerificationResult.MISSING;
-    }
+    accessToken = context.accessToken;
+    idToken = context.idToken;
+    refreshToken = context.refreshToken;
   }
 
   if (accessTokenVerificationResult === JWTVerificationResult.MISSING) {
@@ -147,6 +179,64 @@ export const handleHttpAuthenticationFlow = async(
 }
 
 /**
+ * Refresh tokens for HTTP/2 connection
+ * @param _
+ * @param cookies
+ * @param context
+ * @param metaPayload
+ * @returns
+ */
+export const refreshHttp2Tokens = async (
+  _: Debugger,
+  cookies: Record<string, string>,
+  context: Context,
+  metaPayload: Record<string, any>,
+) : Promise<{
+  accessTokenVerificationResult: JWTVerificationResult,
+  cookiesToSet: Record<string, { value: string, expires?: Date }>,
+}> => {
+  let refreshToken = context.refreshToken = cookies[getConfig().cookies.names.refreshToken];
+  let accessTokenVerificationResult = JWTVerificationResult.MISSING;
+  let cookiesToSet = {};
+
+  try {
+    _.debug('Refreshing token', { refreshToken });
+    const tokens = await OpenIDUtils.refreshTokens(refreshToken);
+    _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
+
+    let metaToken;
+    if (metaPayload) {
+      metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
+      _.debug('Meta token prepared', { metaToken });
+    }
+
+    cookiesToSet = HttpResponseUtils.prepareAuthCookies(tokens, metaToken);
+
+    const accessToken = context.accessToken = tokens.access_token;
+    const idToken = context.idToken = tokens.id_token;
+    refreshToken = context.refreshToken = tokens.refresh_token;
+
+    const accessVerification = await OpenIDUtils.parseTokenAndVerify(accessToken);
+    const idVerification = await OpenIDUtils.parseTokenAndVerify(idToken);
+    accessTokenVerificationResult = accessVerification.verificationResult;
+
+    context.accessTokenJWT = accessVerification.jwt;
+    context.idTokenJWT = idVerification.jwt;
+  } catch (e) {
+    _.error(`Unable to refresh token`, e);
+
+    context.accessToken = null;
+    context.idToken = null;
+    refreshToken = context.refreshToken = null;
+  }
+
+  return {
+    accessTokenVerificationResult,
+    cookiesToSet,
+  };
+}
+
+/**
  * Handle HTTP/2 authentication flow
  * @param debug
  * @param stream
@@ -199,38 +289,19 @@ export const handleHttp2AuthenticationFlow = async (
       idTokenVerificationResult === JWTVerificationResult.EXPIRED
     )
   ) {
-    try {
-      _.debug('Refreshing token', { refreshToken, accessTokenVerificationResult, idTokenVerificationResult });
-      const tokens = await OpenIDUtils.refreshTokens(refreshToken);
-      _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
+    const result = await refreshHttp2Tokens(
+      _,
+      cookies,
+      context,
+      metaPayload,
+    );
 
-      let metaToken;
-      if (metaPayload) {
-        metaToken = OpenIDUtils.prepareMetaToken(metaPayload);
-        _.debug('Meta token prepared', { metaToken });
-      }
+    accessTokenVerificationResult = result.accessTokenVerificationResult;
+    cookiesToSet = result.cookiesToSet;
 
-      cookiesToSet = HttpResponseUtils.prepareAuthCookies(tokens, metaToken);
-
-      accessToken = context.accessToken = tokens.access_token;
-      idToken = context.idToken = tokens.id_token;
-      refreshToken = context.refreshToken = tokens.refresh_token;
-
-      const accessVerification = await OpenIDUtils.parseTokenAndVerify(accessToken);
-      const idVerification = await OpenIDUtils.parseTokenAndVerify(idToken);
-      accessTokenVerificationResult = accessVerification.verificationResult;
-
-      context.accessTokenJWT = accessVerification.jwt;
-      context.idTokenJWT = idVerification.jwt;
-    } catch (e) {
-      _.error(`Unable to refresh token`, e);
-
-      accessToken = context.accessToken = null;
-      idToken = context.idToken = null;
-      refreshToken = context.refreshToken = null;
-
-      accessTokenVerificationResult = JWTVerificationResult.MISSING;
-    }
+    accessToken = context.accessToken;
+    idToken = context.idToken;
+    refreshToken = context.refreshToken;
   }
 
   if (accessTokenVerificationResult === JWTVerificationResult.MISSING) {

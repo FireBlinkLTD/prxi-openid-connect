@@ -204,6 +204,14 @@ One of the key features of prxi-openid-connect is the ability to load configurat
 | `REMOTE_CONFIGURATION_ENDPOINT` | No | | Endpoint to load the configuration from |
 | `REMOTE_CONFIGURATION_TOKEN` | Yes | | Bearer token to include in the request |
 
+## Upstream Headers
+
+Upstream service may respond with custom headers to control the prxi-openid-connect behavior.
+
+| Name                    | Value | Description |
+|-------------------------|-------|-------------|
+| `X-Prxi-Refresh-Tokens` | any   | When header is returned by the upstream service, prxi-openid-connect will refresh any existing tokens (access/id) |
+
 ## Links
 
 - [Docker Image](https://hub.docker.com/r/fireblink/prxi-openid-connect) official Docker image
