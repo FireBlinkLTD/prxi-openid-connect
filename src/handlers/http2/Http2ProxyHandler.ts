@@ -7,7 +7,8 @@ import { IncomingHttpHeaders, OutgoingHttpHeaders, ServerHttp2Stream } from "nod
 import { prepareSetCookies } from "../../utils/ResponseUtils";
 import { Debugger } from "../../utils/Debugger";
 import { Context } from "../../types/Context";
-import { handleHttp2AuthenticationFlow } from "../../utils/AccessUtils";
+import { handleHttp2AuthenticationFlow, refreshHttp2Tokens } from "../../utils/AccessUtils";
+import { Constants } from "../../types/Constants";
 
 export class Http2ProxyHandler implements Http2RequestHandlerConfig {
   /**
@@ -170,7 +171,14 @@ export class Http2ProxyHandler implements Http2RequestHandlerConfig {
     _.debug('Proceeding to proxy request', { proxyRequestHeaders, outgoingSetCookies });
     await proxyRequest({
       proxyRequestHeaders,
-      onBeforeResponse: (resp: Response, outgoingHeaders: OutgoingHttpHeaders) => {
+      onBeforeResponse: async (resp: Response, outgoingHeaders: OutgoingHttpHeaders) => {
+        if (outgoingHeaders[Constants.HEADER_X_PRXI_REFRESH_TOKENS]) {
+          delete outgoingHeaders[Constants.HEADER_X_PRXI_REFRESH_TOKENS];
+          const { cookiesToSet } = await refreshHttp2Tokens(_, cookies, context, metaPayload);
+          outgoingSetCookies = prepareSetCookies(cookiesToSet);
+        }
+
+        /* istanbul ignore else */
         if (getConfig().headers.responseConfigVersion) {
           outgoingHeaders[getConfig().headers.responseConfigVersion] = getConfig().dynamic.version.toString();
         }

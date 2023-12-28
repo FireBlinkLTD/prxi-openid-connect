@@ -6,7 +6,8 @@ import { JwtPayload, verify } from 'jsonwebtoken';
 import { RequestUtils } from '../../utils/RequestUtils';
 import { Context } from '../../types/Context';
 import { Debugger } from '../../utils/Debugger';
-import { handleHttpAuthenticationFlow } from '../../utils/AccessUtils';
+import { handleHttpAuthenticationFlow, refreshTokens } from '../../utils/AccessUtils';
+import { Constants } from '../../types/Constants';
 
 export class ProxyHandler implements HttpRequestHandlerConfig {
   /**
@@ -162,7 +163,13 @@ export class ProxyHandler implements HttpRequestHandlerConfig {
     _.debug('Proceeding to proxy request', { proxyRequestHeaders });
     await proxyRequest({
       proxyRequestHeaders,
-      onBeforeResponse: (res: ServerResponse, outgoingHeaders: OutgoingHttpHeaders) => {
+      onBeforeResponse: async (res: ServerResponse, outgoingHeaders: OutgoingHttpHeaders) => {
+        if (outgoingHeaders[Constants.HEADER_X_PRXI_REFRESH_TOKENS]) {
+          delete outgoingHeaders[Constants.HEADER_X_PRXI_REFRESH_TOKENS];
+          await refreshTokens(_, res, cookies, context, metaPayload);
+        }
+
+        /* istanbul ignore else */
         if (getConfig().headers.responseConfigVersion) {
           outgoingHeaders[getConfig().headers.responseConfigVersion] = getConfig().dynamic.version.toString();
         }
