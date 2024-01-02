@@ -1,4 +1,4 @@
-import { suite, test } from "@testdeck/mocha";
+import { suite, test, timeout } from "@testdeck/mocha";
 import { BaseSuite } from "./Base.suite";
 import { getConfig } from "../src/config/getConfig";
 import { ok, strictEqual } from "assert";
@@ -150,6 +150,32 @@ class BaseTokenRefreshSuite extends BaseSuite {
       const text = await this.getTextFromPage(page);
       strictEqual(text, '401: Unauthorized');
     });
+  }
+
+  @test() @timeout(15000)
+  async raceCondition() {
+    const uri = '/api/test?q=str';
+    let refreshCookie: any;
+    await this.withNewAuthenticatedPage(getConfig().hostURL + '/pages/test', async (page) => {
+      const cookies = await page.cookies();
+      refreshCookie = cookies.find(c => c.name === getConfig().cookies.names.refreshToken);
+    });
+
+    ok(refreshCookie);
+
+    const promises = [];
+    for (let i = 0; i < 2; i++) {
+      promises.push(this.withNewPage(getConfig().hostURL + '/pages/test-' + i, async (page) => {
+        await page.setCookie({
+          name: refreshCookie.name,
+          value: refreshCookie.value,
+        });
+        await this.navigate(page, getConfig().hostURL + uri);
+        let json = await this.getJsonFromPage(page);
+        strictEqual(json.http.url, uri);
+      }));
+    }
+    await Promise.all(promises);
   }
 
   @test()

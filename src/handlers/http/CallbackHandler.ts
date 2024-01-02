@@ -60,7 +60,7 @@ export const CallbackHandler: HttpRequestHandlerConfig = {
       _.debug('Login webhook request successful', { result });
       // check if tokens should be refreshed (can be useful for the scenario when webhook endpoint modified user record and new JWT tokens needs to be issued with updated information)
       if (result.refresh) {
-        tokens = await OpenIDUtils.refreshTokens(tokens.refresh_token);
+        tokens = await OpenIDUtils.refreshTokens(_, tokens.refresh_token);
         _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
       }
 
