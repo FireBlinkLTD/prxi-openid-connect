@@ -5,6 +5,7 @@ import { IncomingMessage } from "node:http";
 import jwkToBuffer = require('jwk-to-pem');
 import { Jwt, verify, sign, decode } from "jsonwebtoken";
 import { Logger } from "winston";
+import { Debugger } from "./Debugger";
 
 export enum JWTVerificationResult {
   MISSING = -1,
@@ -18,6 +19,8 @@ export class OpenIDUtils {
   private static client: Client;
   private static issuer: Issuer;
   private static jwksKeys: Record<string, string>;
+
+  private static refreshMap = new Map<string, Promise<TokenSet>>;
 
   /**
    * Init OpenID Utils
@@ -142,12 +145,26 @@ export class OpenIDUtils {
 
   /**
    * Refresh tokens
+   * @param _
    * @param refreshToken
    * @returns
    */
-  public static async refreshTokens(refreshToken: string): Promise<TokenSet> {
-    OpenIDUtils.logger.debug('Refreshing tokens');
-    return await OpenIDUtils.client.refresh(refreshToken);
+  public static async refreshTokens(_: Debugger, refreshToken: string): Promise<TokenSet> {
+    let tokenSetPromise = OpenIDUtils.refreshMap.get(refreshToken);
+    if (tokenSetPromise) {
+      _.debug('Awaiting refresh tokens from the cache map');
+      return await tokenSetPromise;
+    }
+
+    _.debug('Refreshing tokens');
+    tokenSetPromise = OpenIDUtils.client.refresh(refreshToken);
+    OpenIDUtils.refreshMap.set(refreshToken, tokenSetPromise);
+
+    setTimeout(() => {
+      OpenIDUtils.refreshMap.delete(refreshToken);
+    }, 10000);
+
+    return await tokenSetPromise;
   }
 
   /**

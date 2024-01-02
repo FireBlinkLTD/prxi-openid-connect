@@ -28,7 +28,7 @@ export const refreshTokens = async (
 
   try {
     _.debug('Refreshing token', { refreshToken });
-    const tokens = await OpenIDUtils.refreshTokens(refreshToken);
+    const tokens = await OpenIDUtils.refreshTokens(_, refreshToken);
     _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
 
     let metaToken;
@@ -201,7 +201,7 @@ export const refreshHttp2Tokens = async (
 
   try {
     _.debug('Refreshing token', { refreshToken });
-    const tokens = await OpenIDUtils.refreshTokens(refreshToken);
+    const tokens = await OpenIDUtils.refreshTokens(_, refreshToken);
     _.debug('-> OpenIDUtils.refreshTokens()', { tokens });
 
     let metaToken;
