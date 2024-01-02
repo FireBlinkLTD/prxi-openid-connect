@@ -1,5 +1,10 @@
 import { HttpMethod } from "prxi";
 
+export enum MAPPING_MODE {
+  'ANY' = 'ANY',
+  'ALL' = 'ALL',
+}
+
 export interface Mapping {
   pattern: RegExp;
   methods?: HttpMethod[];
@@ -9,6 +14,7 @@ export interface Mapping {
   }[];
   auth: {
     required: boolean,
+    mode: MAPPING_MODE,
     claims: Record<string, string[]>;
   }
 }
@@ -89,6 +95,11 @@ export const prepareMapping = (value: any): Mapping => {
   if (value.auth.required !== false) {
     value.auth.required = true;
   }
+
+  if (!value.auth.mode) {
+    value.auth.mode = MAPPING_MODE.ANY;
+  }
+  value.auth.mode = value.auth.mode.toUpperCase();
 
   // if no claims set, set default object
   if (!value.auth.claims || JSON.stringify(value.auth.claims) === '{}') {
