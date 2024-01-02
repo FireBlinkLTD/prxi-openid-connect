@@ -140,6 +140,11 @@ Mappings format:
       # [optional] when "false", allows either unauthorized or a claims hit to GRANT access, default value "true", meaning only authorized access is allowed
       "required": false,
 
+      # [optional] claims matching mode, can be:
+      #    "ANY" - default value, any of the claims grant user access
+      #    "ALL" - only when all the claims are included access will be granted
+      "mode": "ANY",
+
       # [optional] list of JWT claims to match over, note: when "auth.required" is true "auth.claims" should be provided too
       "claims": {
         # claims can reference one or many named paths (refer to the JWT_AUTH_CLAIM_PATHS environment variable configuration)
@@ -212,11 +217,20 @@ Upstream service may respond with custom headers to control the prxi-openid-conn
 |-------------------------|-------|-------------|
 | `X-Prxi-Refresh-Tokens` | any   | When header is returned by the upstream service, prxi-openid-connect will refresh any existing tokens (access/id) |
 
+## HTMX Support
+
+Every time prxi-openid-connect needs to send a redirect it checks an incoming request to have the `Hx-Boosted` header. If header is found and its value is `true` then prxi-openid-connect will return `200` status code with [Hx-Redirect](https://htmx.org/reference/#response_headers) header instead of making a standard HTTP redirect.
+
 ## Links
 
 - [Docker Image](https://hub.docker.com/r/fireblink/prxi-openid-connect) official Docker image
 - [GitHub Repository](https://github.com/FireBlinkLTD/prxi-openid-connect)
 - [@prixi/dev](https://www.npmjs.com/package/@prxi/dev) a simple CLI reverse proxy tool for local development purposes, can be handy to simulate fireblink/prxi-openid-connect setup without a need to run docker container and/or setup test IDP configuration
+
+## IDP Specific Configuration Details
+
+- [AWS Cognito User Pool](https://github.com/FireBlinkLTD/prxi-openid-connect/blob/main/docs/idp/Cognito.md)
+- [Keycloak](https://github.com/FireBlinkLTD/prxi-openid-connect/blob/main/docs/idp/Keycloak.md)
 
 ## License
 
@@ -236,6 +250,3 @@ More can be found in [LICENSE.md](https://github.com/FireBlinkLTD/prxi-openid-co
 
 To obtain a commercial license [click here](https://fireblink.com/#contact-us) to get in a contact.
 
-## HTMX Support
-
-Every time prxi-openid-connect needs to send a redirect it checks an incoming request to have the `Hx-Boosted` header. If header is found and its value is `true` then prxi-openid-connect will return `200` status code with [Hx-Redirect](https://htmx.org/reference/#response_headers) header instead of making a standard HTTP redirect.

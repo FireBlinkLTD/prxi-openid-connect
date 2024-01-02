@@ -6,7 +6,7 @@ import { HttpMethod, Request } from "prxi";
 import * as getRawBody from "raw-body";
 
 import { Debugger } from "./Debugger";
-import { Mapping } from "../config/Mapping";
+import { MAPPING_MODE, Mapping } from "../config/Mapping";
 import { getConfig } from "../config/getConfig";
 
 export class RequestUtils {
@@ -80,25 +80,33 @@ export class RequestUtils {
       idTokenJWT,
     ], authClaimPaths);
 
-    let pass = false;
+    let intersectionLength = 0;
+    let expectedLength = 0;
     for (const key of Object.keys(auth.claims)) {
       matchingAuthClaims[key] = [];
       const expectedKeyClaims = auth.claims[key];
       const jwtKeyClaims = allAuthClaims[key] = jwtClaims[key];
+      expectedLength += expectedKeyClaims.length;
 
       if (jwtKeyClaims?.length) {
         const intersection = expectedKeyClaims.filter(claim => jwtKeyClaims.includes(claim));
         if (intersection.length) {
           matchingAuthClaims[key] = intersection;
-          pass = true;
+          intersectionLength += intersection.length;
         }
       }
     }
 
-    if (pass) {
-      _.debug('Found intersection of claims, access allowed', {
+    if (intersectionLength) {
+      _.debug('Found intersection of claims', {
         matchingAuthClaims,
+        mode: auth.mode,
       });
+    }
+
+    let pass = intersectionLength > 0;
+    if (auth.mode === MAPPING_MODE.ALL) {
+      pass = intersectionLength === expectedLength;
     }
 
     if (pass || !auth.required) {
@@ -119,6 +127,7 @@ export class RequestUtils {
     _.info('No intersection of claims found, access denied', {
       expectedClaims: auth.claims,
       actualClaims: jwtClaims,
+      mode: auth.mode,
     });
 
     return false;
