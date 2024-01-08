@@ -2,6 +2,8 @@ import { prepareMappings, preparePattern } from "./Mapping";
 import { Config } from "./Config";
 import { readFileSync } from "node:fs";
 import getLogger from "../Logger";
+import { Constants } from "../types/Constants";
+import { version } from "../version";
 
 /**
  * Convert snake_case to camelCase
@@ -99,7 +101,8 @@ export const fetchRemote = async (): Promise<void> => {
     const resp = await fetch(getConfig().dynamic.remote.endpoint, {
       headers: {
         Authorization: `Bearer ${getConfig().dynamic.remote.token}`,
-        'X-Prxi-Version': process.version,
+        [Constants.HEADER_X_PRXI_VERSION]: version,
+        [Constants.HEADER_X_PRXI_CONFIG_VERSION]: getConfig().dynamic.version.toString(),
       }
     });
 
@@ -127,12 +130,18 @@ export const fetchRemote = async (): Promise<void> => {
       }
 
       let dynamic = config.dynamic;
+      let headers: Record<string, string> = {};
+      resp.headers.forEach((val, key) => {
+        headers[key] = val;
+      });
+
       config = {
         ...config,
         dynamic: {
           ... dynamic,
-          ...json,
+          ... json,
           ... { remote: dynamic.remote },
+          headers,
         }
       }
 

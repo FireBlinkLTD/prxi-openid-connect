@@ -49,6 +49,11 @@ export class MockServer {
         }
 
         res.setHeader('Content-Length', mapping.response.length);
+        for (const key of Object.keys(req.headers)) {
+          if (key.indexOf('x-') === 0) {
+            res.setHeader(key, req.headers[key]);
+          }
+        }
 
         res.statusCode = mapping.status;
         res.write(mapping.response, () => {

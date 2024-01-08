@@ -37,6 +37,7 @@ export interface Config {
 
   dynamic: {
     version: number,
+    headers?: Record<string, string | string[]>,
 
     remote: {
       enabled: boolean;

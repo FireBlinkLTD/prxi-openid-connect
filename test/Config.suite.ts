@@ -4,6 +4,8 @@ import { deepEqual, strictEqual } from "assert";
 import { resolve } from "path";
 import { readFileSync } from "fs";
 import { MockServer } from "./mock/MockServer";
+import { Constants } from "../src/types/Constants";
+import { version } from "../src/version";
 
 @suite()
 class ConfigSuite {
@@ -66,6 +68,8 @@ class ConfigSuite {
 
       await initConfig();
       strictEqual(getConfig().dynamic.version, 1);
+      strictEqual(getConfig().dynamic.headers[Constants.HEADER_X_PRXI_VERSION], version);
+      strictEqual(getConfig().dynamic.headers[Constants.HEADER_X_PRXI_CONFIG_VERSION], '0');
 
       await new Promise(res => setTimeout(res, 100));
     } finally {

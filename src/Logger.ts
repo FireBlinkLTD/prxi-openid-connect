@@ -1,6 +1,7 @@
 import { Logger, createLogger, format, transports } from "winston";
 import DailyRotateFile = require('winston-daily-rotate-file');
 import { getConfig } from "./config/getConfig";
+import { version } from "./version";
 
 /**
  * Get logger
@@ -18,7 +19,7 @@ const getLogger = (tag: string): Logger => {
     level: log.level,
     defaultMeta: {
       name: '@prxi/openid-connect',
-      version: process.env.npm_package_version,
+      version: version,
       tag
     },
     transports: [

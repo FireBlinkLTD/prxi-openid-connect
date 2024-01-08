@@ -21,7 +21,6 @@ jobs:
         run: echo ::set-output name=tag::${GITHUB_REF#refs/*/}
 
       - run: yarn install
-      - run: yarn build
 
       - name: Update package.json version based on a tag
         run: |
@@ -29,10 +28,12 @@ jobs:
             const package =JSON.parse(fs.readFileSync('package.json', 'utf8'));
             package.version = '$RELEASE_VERSION'; \
             fs.writeFileSync('package.json', JSON.stringify(package)); \
+            fs.writeFileSync('src/version.ts', 'export const version = \'$RELEASE_VERSION\';'); \
           "
         env:
           RELEASE_VERSION: ${{ steps.vars.outputs.tag }}
 
+      - run: yarn build
       - run: npm publish --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
