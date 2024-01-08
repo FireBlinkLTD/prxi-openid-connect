@@ -209,6 +209,11 @@ One of the key features of prxi-openid-connect is the ability to load configurat
 | `REMOTE_CONFIGURATION_ENDPOINT` | No | | Endpoint to load the configuration from |
 | `REMOTE_CONFIGURATION_TOKEN` | Yes | | Bearer token to include in the request |
 
+Remote configuration request headers:
+
+- `x-prxi-version` - version of the prxi-openid-connect
+- `x-prxi-config-version` - version of the configuration, on first load it will equal `0`
+
 ## Upstream Headers
 
 Upstream service may respond with custom headers to control the prxi-openid-connect behavior.
