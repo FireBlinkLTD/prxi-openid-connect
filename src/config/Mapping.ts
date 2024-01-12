@@ -101,13 +101,7 @@ export const prepareMapping = (value: any): Mapping => {
   }
   value.auth.mode = value.auth.mode.toUpperCase();
 
-  // if no claims set, set default object
-  if (!value.auth.claims || JSON.stringify(value.auth.claims) === '{}') {
-    /* istanbul ignore next */
-    if (value.auth.required) {
-      throw new Error(`Invalid mapping provided for pattern: ${value.pattern}, configuration will cause rejection of all requests. Either provide auth.claims or set auth.required flag to false`);
-    }
-
+  if (!value.auth.claims) {
     value.auth.claims = {};
   }
 

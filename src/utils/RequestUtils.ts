@@ -104,7 +104,7 @@ export class RequestUtils {
       });
     }
 
-    let pass = intersectionLength > 0;
+    let pass = intersectionLength > 0 || expectedLength === 0;
     if (auth.mode === MAPPING_MODE.ALL) {
       pass = intersectionLength === expectedLength;
     }

@@ -63,6 +63,7 @@ export class WebSocketHandler implements WebSocketHandlerConfig {
       _.debug('Meta token found', { metaPayload });
     }
 
+
     const proxyRequestHeaders: Record<string, string | string[] | null> = {};
     if (getConfig().headers.claims.auth.all) {
       const value = JSON.stringify(context.claims?.auth?.all || {});

@@ -23,6 +23,24 @@ class BasePageMappingSuite extends BaseSuite {
     });
   }
 
+  @test
+  async authRequiredWithoutClaims() {
+    const uri = '/auth-required-pages/test?q=str';
+    await this.withNewAuthenticatedPage(getConfig().hostURL + uri, async (page) => {
+      const json = await this.getJsonFromPage(page);
+
+      // validate query to be in place
+      strictEqual(json.http.url, uri);
+
+      // validate cookies
+      const cookies = json.headers.cookie ? parse(json.headers.cookie) : {};
+      ok(cookies[getConfig().cookies.names.accessToken]);
+      ok(cookies[getConfig().cookies.names.idToken]);
+      ok(cookies[getConfig().cookies.names.refreshToken]);
+      ok(!cookies[getConfig().cookies.names.originalPath]);
+    });
+  }
+
   @test()
   async e404Endpoint() {
     const uri = '/non-existing-mapping';

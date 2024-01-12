@@ -145,7 +145,7 @@ Mappings format:
       #    "ALL" - only when all the claims are included access will be granted
       "mode": "ANY",
 
-      # [optional] list of JWT claims to match over, note: when "auth.required" is true "auth.claims" should be provided too
+      # [optional] list of JWT claims to match over
       "claims": {
         # claims can reference one or many named paths (refer to the JWT_AUTH_CLAIM_PATHS environment variable configuration)
         "name": [
