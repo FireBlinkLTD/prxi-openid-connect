@@ -31,7 +31,7 @@ Response should return 200 status code to be considered successful, in addition 
 | `reject`     | `boolean`             | No       | `false`         | If `true`, user won't get the tokens and will see an `Access denied` error |
 | `reason`     | `string`              | No       | `Access denied` | Reason of rejection |
 | `meta`       | `Record<string, any>` | No       |                 | Custom meta attributes associated to a user (make sure to use `JWT_META_TOKEN_SECRET` env variable to set secret and `HEADERS_META` to set the header name to proxy value in) |
-| `redirectTo` | `string`              | No       |                 |  No custom URL or relative path to redirect upon flow completion |
+| `redirectTo` | `string`              | No       |                 |  Custom URL or relative path to redirect upon flow completion |
 
 ## Logout Webhook
 
