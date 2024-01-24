@@ -160,7 +160,7 @@ export const sendRedirect = async (_: Debugger, req: Request, resp: Response, ur
     return;
   }
 
-  resp.statusCode = 307;
+  resp.statusCode = 303;
   resp.setHeader('Location', url);
   resp.end();
 }
