@@ -40,6 +40,14 @@ export const CallbackHandler: HttpRequestHandlerConfig = {
         webhookURL: getConfig().webhook.login,
       });
 
+      const accessVerification = await OpenIDUtils.parseTokenAndVerify(tokens.access_token);
+      const idVerification = await OpenIDUtils.parseTokenAndVerify(tokens.id_token);
+
+      const proxy = RequestUtils.extractRawJWTClaims([
+        accessVerification.jwt,
+        idVerification.jwt,
+      ], getConfig().dynamic.jwt.proxyClaimPaths);
+
       const resp = await fetch(getConfig().webhook.login, {
         method: 'POST',
         headers: {
@@ -48,6 +56,7 @@ export const CallbackHandler: HttpRequestHandlerConfig = {
         body: JSON.stringify({
           tokens,
           originalPath,
+          claims: proxy,
         })
       });
 

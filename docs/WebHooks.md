@@ -15,10 +15,11 @@ To enable specific Webhook request environment variable should be provided based
 
 Request body is a JSON object with the following fields:
 
-| Name           | Type       | Description |
-|----------------|------------|-------------|
-| `tokens`       | `TokenSet` | [TokenSet Structure](https://github.com/panva/node-openid-client/blob/main/docs/README.md#tokenset) |
-| `originalPath` | `string`   | Original request path, e.g. `/a/b/c` |
+| Name           | Type                  | Description |
+|----------------|-----------------------|-------------|
+| `tokens`       | `TokenSet`            | [TokenSet Structure](https://github.com/panva/node-openid-client/blob/main/docs/README.md#tokenset) |
+| `originalPath` | `string`              | Original request path, e.g. `/a/b/c` |
+| `claims`       | `Record<string, any>` | Proxy claims defined by `JWT_PROXY_CLAIM_PATHS` environment variable |
 
 ### Login Webhook Response
 
